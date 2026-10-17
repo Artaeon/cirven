@@ -1,0 +1,40 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<meta http-equiv="Content-Security-Policy" content="default-src 'none'; style-src 'self'; img-src 'self'; base-uri 'none'; form-action 'none'">
+<title>cirven key</title>
+<meta name="description" content="cirven key: hardware key plus password. Sessions and vaults live only while the key is present.">
+<link rel="icon" href="/favicon.svg">
+<link rel="stylesheet" href="/style.css">
+</head>
+<body>
+<p><a href="/">cirven systems</a> / modules / key</p>
+<h1>cirven key</h1>
+<p>Login needs three things at once: the key, the secret inside it, and your password. Sessions and vaults exist only while the key is plugged in. Pull it, and the screen locks, vaults close and key material is wiped from memory.</p>
+
+<h2>usage</h2>
+<pre><span class="p">$</span> cirven key enroll
+touch your key... ok. password: ********
+<span class="p">$</span> cirven key vault open work
+<span class="d">~/vault/work mounted (bound to key 4a:1f:..)</span>
+<span class="d">-- key removed --</span>
+<span class="ok">screen locked, 1 vault closed, keys wiped</span></pre>
+
+<h2>how</h2>
+<ul>
+<li>any FIDO2 key (YubiKey, Nitrokey, SoloKey): no custom hardware needed</li>
+<li>the secret never leaves the key: FIDO2 hmac-secret derives a per-vault value inside it</li>
+<li>vault key = HKDF(hmac-secret || Argon2id(password)); neither half alone opens anything</li>
+<li>PAM module for local login, sudo and screen lock</li>
+<li>udev removal event: lock, close vaults, zero key buffers (mlock'd, never swapped)</li>
+<li>no key files on flash storage: a plain USB stick can be copied in a second; a secure element cannot</li>
+</ul>
+
+<h2>threat model</h2>
+<p>Stops: stolen laptops, stolen passwords, copied disks, shoulder surfing, walk-away sessions. Does not stop: malware on a machine while the key is plugged in and a vault is open. Losing the key means losing access, so enroll a second key as backup.</p>
+
+<footer><hr>status: <span class="w">planned</span> &middot; <a href="/">back</a></footer>
+</body>
+</html>
