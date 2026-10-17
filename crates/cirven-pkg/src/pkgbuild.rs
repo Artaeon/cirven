@@ -80,11 +80,64 @@ static SCRIPT_PATTERNS: LazyLock<Vec<(Severity, &str, Regex)>> = LazyLock::new(|
     .collect()
 });
 
-/// Writing to the live system instead of `$pkgdir` / `$srcdir`.
-static LIVE_WRITE: LazyLock<Regex> = LazyLock::new(|| {
-    Regex::new(r#"(>>?|\b(cp|mv|install|ln|tee)\s[^#]*?)\s["']?/(etc|usr|var|boot|root|home)/"#)
-        .expect("valid pattern")
-});
+const LIVE_ROOTS: &[&str] = &["/etc/", "/usr/", "/var/", "/boot/", "/root/", "/home/"];
+
+fn live_path(word: &str) -> bool {
+    let w = word.trim_matches(['"', '\'']);
+    LIVE_ROOTS.iter().any(|r| w.starts_with(r))
+}
+
+/// Whether a line copies or redirects into the live system instead of
+/// `$pkgdir`. Only destinations count: reading from /usr is fine, and an
+/// absolute symlink target is normal.
+fn live_write(line: &str) -> bool {
+    for (i, _) in line.match_indices('>') {
+        let rest = line[i + 1..].trim_start_matches(['>', '|']).trim_start();
+        if live_path(rest.split_whitespace().next().unwrap_or("")) {
+            return true;
+        }
+    }
+    line.split(['|', ';', '&']).any(|cmd| {
+        let words: Vec<&str> = cmd.split_whitespace().collect();
+        let Some(pos) = words
+            .iter()
+            .position(|w| matches!(*w, "cp" | "mv" | "install" | "tee"))
+        else {
+            return false;
+        };
+        let args: Vec<&str> = words[pos + 1..]
+            .iter()
+            .copied()
+            .filter(|w| !w.starts_with('-'))
+            .collect();
+        match words[pos] {
+            "tee" => args.iter().any(|a| live_path(a)),
+            _ => args.len() >= 2 && args.last().is_some_and(|d| live_path(d)),
+        }
+    })
+}
+
+/// Join backslash-continued lines, keeping the number of the first line.
+fn logical_lines(text: &str) -> Vec<(usize, String)> {
+    let mut out: Vec<(usize, String)> = Vec::new();
+    let mut open = false;
+    for (n, raw) in text.lines().enumerate() {
+        let line = strip_comment(raw).trim_end();
+        let (body, cont) = match line.strip_suffix('\\') {
+            Some(b) => (b, true),
+            None => (line, false),
+        };
+        match out.last_mut() {
+            Some((_, prev)) if open => {
+                prev.push(' ');
+                prev.push_str(body.trim());
+            }
+            _ => out.push((n + 1, body.trim().to_string())),
+        }
+        open = cont;
+    }
+    out
+}
 
 static ASSIGN: LazyLock<Regex> = LazyLock::new(|| {
     Regex::new(r#"^([A-Za-z_][A-Za-z0-9_]*)=(?:"([^"]*)"|'([^']*)'|([^\s(#]*))"#)
@@ -375,9 +428,10 @@ fn checksums(pb: &Pkgbuild, out: &mut Vec<Finding>) {
 /// Pattern hits in a script, with 1-based line numbers. Source arrays and
 /// comments are excluded; `origin` names the file for locations.
 pub fn script(text: &str, origin: &str, out: &mut Vec<Finding>) {
+    let install_script = origin != "PKGBUILD";
     let mut in_array = false;
-    for (n, raw) in text.lines().enumerate() {
-        let line = strip_comment(raw).trim();
+    for (n, line) in logical_lines(text) {
+        let line = line.as_str();
         if in_array {
             in_array = !line.ends_with(')');
             continue;
@@ -391,7 +445,7 @@ pub fn script(text: &str, origin: &str, out: &mut Vec<Finding>) {
         if line.is_empty() {
             continue;
         }
-        let at = format!("{origin}:{}", n + 1);
+        let at = format!("{origin}:{n}");
         for (severity, why, re) in SCRIPT_PATTERNS.iter() {
             if re.is_match(line) {
                 out.push(
@@ -401,18 +455,27 @@ pub fn script(text: &str, origin: &str, out: &mut Vec<Finding>) {
                 );
             }
         }
-        if LIVE_WRITE.is_match(line) && !line.contains("pkgdir") && !line.contains("srcdir") {
+        if live_write(line) && !line.contains("pkgdir") && !line.contains("srcdir") {
+            // Install scripts run on the live system by design; a PKGBUILD must not.
             out.push(
-                Finding::new(
-                    "pkg.live-write",
-                    Severity::High,
-                    "writes to the live system instead of the package",
-                )
+                if install_script {
+                    Finding::new(
+                        "pkg.live-write",
+                        Severity::Medium,
+                        "install script writes system files",
+                    )
+                } else {
+                    Finding::new(
+                        "pkg.live-write",
+                        Severity::High,
+                        "writes to the live system instead of the package",
+                    )
+                }
                 .at(&at)
                 .path(shorten(line)),
             );
         }
-        if raw.len() > 400 {
+        if line.len() > 400 {
             out.push(
                 Finding::new(
                     "pkg.obfuscated",
@@ -548,6 +611,18 @@ package() {
             f[0].location.as_deref(),
             Some("https://dl.example.com/y.deb")
         );
+    }
+
+    #[test]
+    fn only_destinations_count_as_live_writes() {
+        assert!(live_write("echo x > /etc/profile.d/x.sh"));
+        assert!(live_write("cp payload /usr/lib/libx.so"));
+        assert!(live_write("echo x | sudo tee /etc/hosts"));
+        assert!(!live_write("cp /usr/share/doc/x.txt ."));
+        assert!(!live_write("ln -s /usr/share/code/LICENSE.rtf x"));
+        assert!(!live_write("make 2>/dev/null"));
+        let pb = "package() {\n  ln -s /usr/share/code/LICENSE \\\n    \"$pkgdir/usr/share/licenses/x\"\n  install -Dm644 /usr/share/x \\\n    \"$pkgdir/x\"\n}\n";
+        assert!(analyse(pb, None).is_empty(), "{:?}", analyse(pb, None));
     }
 
     #[test]
