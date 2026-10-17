@@ -1,0 +1,20 @@
+:root{color-scheme:dark;--bg:#000;--fg:#c9d4e8;--dim:#6b7a94;--hi:#2c7bff;--ok:#5fd75f;--warn:#e6c84c}
+*{box-sizing:border-box}
+body{margin:0 auto;padding:24px 16px 48px;max-width:82ch;background:var(--bg);color:var(--fg);font:15px/1.5 ui-monospace,"DejaVu Sans Mono",Menlo,Consolas,monospace}
+img{display:block;max-width:100%;height:auto;margin:8px 0 24px}
+a{color:var(--hi)}
+a:visited{color:#7a9dff}
+a:hover,a:focus{background:var(--hi);color:var(--bg);text-decoration:none}
+h1,h2,h3{font-size:1em;margin:2em 0 .5em;color:var(--hi);text-transform:uppercase;letter-spacing:.08em}
+h1::before{content:"# "}h2::before{content:"## "}h3::before{content:"### "}
+p,ul,pre,table{margin:0 0 1em}
+ul{padding-left:2ch}
+pre{overflow-x:auto;white-space:pre;scrollbar-color:var(--dim) var(--bg)}
+@media(max-width:600px){body{font-size:14px}pre{font-size:12px}}
+hr{border:0;border-top:1px dashed var(--dim);margin:2em 0}
+table{border-collapse:collapse;width:100%}
+td,th{text-align:left;vertical-align:top;padding:0 2ch 4px 0}
+th{color:var(--dim);font-weight:normal}
+code,.p{color:var(--hi)}
+.d{color:var(--dim)}.ok{color:var(--ok)}.w{color:var(--warn)}
+footer{margin-top:3em;color:var(--dim)}
