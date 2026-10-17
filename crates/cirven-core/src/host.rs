@@ -32,6 +32,11 @@ impl Host {
         Host { root, home }
     }
 
+    /// Whether this is a fixture tree rather than the running system.
+    pub fn fixture(&self) -> bool {
+        self.root != Path::new("/")
+    }
+
     /// An absolute system path such as `/etc/ssh/sshd_config`.
     pub fn sys(&self, abs: &str) -> PathBuf {
         self.root.join(abs.trim_start_matches('/'))

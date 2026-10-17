@@ -76,8 +76,8 @@ fn timestamp() -> String {
     format!("unix:{secs}")
 }
 
-fn store(host: &Host, fixture: bool) -> PathBuf {
-    cirven_core::state_dir(host, MODULE.name, fixture).join("baseline.json")
+fn store(host: &Host) -> PathBuf {
+    cirven_core::state_dir(host, MODULE.name).join("baseline.json")
 }
 
 fn record(host: &Host, path: &Path, verb: &str) -> Result<u8> {
@@ -233,7 +233,7 @@ pub fn run(args: &[String]) -> Result<u8> {
         Some(root) => Host::at(root, &args.home),
         None => Host::live(),
     };
-    let path = store(&host, args.root.is_some());
+    let path = store(&host);
     match args.command.unwrap_or(Command::Check) {
         Command::Baseline => record(&host, &path, "recorded"),
         Command::Accept => record(&host, &path, "accepted"),

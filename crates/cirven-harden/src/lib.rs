@@ -125,7 +125,7 @@ pub fn run(args: &[String]) -> Result<u8> {
     let state = args
         .state
         .clone()
-        .unwrap_or_else(|| cirven_core::state_dir(&host, MODULE.name, args.root.is_some()));
+        .unwrap_or_else(|| cirven_core::state_dir(&host, MODULE.name));
 
     if args.list {
         let snaps = apply::list(&state);

@@ -168,8 +168,8 @@ pub fn is_root() -> bool {
 
 /// Where a module keeps its state: under /var/lib for root and for fixture
 /// trees, otherwise in the user's XDG state directory.
-pub fn state_dir(host: &Host, module: &str, fixture: bool) -> std::path::PathBuf {
-    if fixture || is_root() {
+pub fn state_dir(host: &Host, module: &str) -> std::path::PathBuf {
+    if host.fixture() || is_root() {
         return host.sys(&format!("/var/lib/cirven/{module}"));
     }
     match std::env::var_os("XDG_STATE_HOME") {

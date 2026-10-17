@@ -65,8 +65,7 @@ pub fn run(args: &[String]) -> Result<u8> {
         Some(root) => Host::at(root, &args.home),
         None => Host::live(),
     };
-    let store =
-        cirven_core::state_dir(&host, MODULE.name, args.root.is_some()).join("planted.json");
+    let store = cirven_core::state_dir(&host, MODULE.name).join("planted.json");
     let mut ledger = plant::load(&store);
 
     match args.command.unwrap_or(Command::Plan) {

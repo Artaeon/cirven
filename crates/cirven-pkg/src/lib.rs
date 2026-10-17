@@ -198,7 +198,7 @@ fn check_aur(name: &str, color: bool) -> Result<u8> {
         info.num_votes
     );
     print!("{}", render(&label, &findings, color));
-    let state = cirven_core::state_dir(&cirven_core::Host::live(), MODULE.name, false);
+    let state = cirven_core::state_dir(&cirven_core::Host::live(), MODULE.name);
     match changes_since_last(&state, &info.package_base, &text) {
         Some(added) if !added.is_empty() => {
             println!("\nchanged since your last check:");
