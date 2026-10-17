@@ -16,18 +16,25 @@ enum Command {
     /// List modules and their status
     Modules,
     /// Find weaknesses, rank them by real attack paths
+    #[command(disable_help_flag = true)]
     Audit(Passthrough),
     /// Fix findings: preview, apply, roll back
+    #[command(disable_help_flag = true)]
     Harden(Passthrough),
     /// Detect persistence: new units, autostarts, hooks
+    #[command(disable_help_flag = true)]
     Watch(Passthrough),
     /// Decoy credentials that alarm when touched
+    #[command(disable_help_flag = true)]
     Lure(Passthrough),
     /// Inspect AUR/npm/pip packages before install
+    #[command(disable_help_flag = true)]
     Pkg(Passthrough),
     /// Sandbox tools and AI agents to what they need
+    #[command(disable_help_flag = true)]
     Cage(Passthrough),
     /// Hardware key + password; unplug and it all locks
+    #[command(disable_help_flag = true)]
     Key(Passthrough),
 }
 
