@@ -19,6 +19,8 @@ enum Command {
     Audit(Passthrough),
     /// Fix findings: preview, apply, roll back
     Harden(Passthrough),
+    /// Detect persistence: new units, autostarts, hooks
+    Watch(Passthrough),
 }
 
 /// Arguments handed to the module unparsed; each module owns its own options.
@@ -28,7 +30,11 @@ struct Passthrough {
     args: Vec<String>,
 }
 
-const MODULES: &[&Module] = &[&cirven_audit::MODULE, &cirven_harden::MODULE];
+const MODULES: &[&Module] = &[
+    &cirven_audit::MODULE,
+    &cirven_harden::MODULE,
+    &cirven_watch::MODULE,
+];
 
 fn main() -> ExitCode {
     let result: cirven_core::Result<()> = match Cli::parse().command {
@@ -38,6 +44,7 @@ fn main() -> ExitCode {
         }
         Command::Audit(p) => cirven_audit::run(&p.args),
         Command::Harden(p) => cirven_harden::run(&p.args),
+        Command::Watch(p) => cirven_watch::run(&p.args),
     };
     match result {
         Ok(()) => ExitCode::SUCCESS,

@@ -12,6 +12,7 @@ homepage.workspace = true
 cirven-core.workspace = true
 cirven-audit.workspace = true
 cirven-harden.workspace = true
+cirven-watch.workspace = true
 clap.workspace = true
 
 [lints]

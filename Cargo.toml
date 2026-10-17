@@ -14,6 +14,7 @@ homepage = "https://cirven.dev"
 cirven-core = { path = "crates/cirven-core" }
 cirven-audit = { path = "crates/cirven-audit" }
 cirven-harden = { path = "crates/cirven-harden" }
+cirven-watch = { path = "crates/cirven-watch" }
 clap = { version = "4.5", features = ["derive"] }
 
 [workspace.lints.rust]
