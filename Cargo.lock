@@ -164,6 +164,9 @@ name = "cirven-pkg"
 version = "0.0.0"
 dependencies = [
  "cirven-core",
+ "clap",
+ "regex",
+ "tempfile",
 ]
 
 [[package]]

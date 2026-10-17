@@ -10,6 +10,11 @@ homepage.workspace = true
 
 [dependencies]
 cirven-core.workspace = true
+clap.workspace = true
+regex.workspace = true
+
+[dev-dependencies]
+tempfile.workspace = true
 
 [lints]
 workspace = true
