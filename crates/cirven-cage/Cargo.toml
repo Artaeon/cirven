@@ -10,6 +10,9 @@ homepage.workspace = true
 
 [dependencies]
 cirven-core.workspace = true
+clap.workspace = true
+landlock.workspace = true
+nix.workspace = true
 
 [lints]
 workspace = true

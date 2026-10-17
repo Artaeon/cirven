@@ -20,6 +20,8 @@ cirven-pkg = { path = "crates/cirven-pkg" }
 cirven-cage = { path = "crates/cirven-cage" }
 cirven-key = { path = "crates/cirven-key" }
 base64 = "0.22"
+landlock = "0.4"
+nix = { version = "0.29", features = ["sched", "user"] }
 inotify = { version = "0.11", default-features = false }
 clap = { version = "4.5", features = ["derive"] }
 regex = "1"
