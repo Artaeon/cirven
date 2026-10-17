@@ -5,7 +5,9 @@ use std::path::PathBuf;
 use cirven_audit::{Host, Report};
 use cirven_core::Severity;
 
-pub const SYSCTL_DROPIN: &str = "/etc/sysctl.d/90-cirven.conf";
+/// sysctl.d files load in name order and later ones win; `99-zz` sorts after
+/// distribution files such as `99-sysctl.conf`, so our values survive boot.
+pub const SYSCTL_DROPIN: &str = "/etc/sysctl.d/99-zz-cirven.conf";
 pub const SSHD_DROPIN: &str = "/etc/ssh/sshd_config.d/10-cirven.conf";
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]

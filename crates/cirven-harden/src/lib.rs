@@ -13,13 +13,14 @@
 //! Threat model: closes the attack paths audit reports. A purged secret must
 //! still be rotated at its issuer.
 
+pub mod apply;
 pub mod plan;
 
 use std::io::IsTerminal;
 use std::path::PathBuf;
 
 use cirven_audit::Host;
-use cirven_core::{Module, Result, Status};
+use cirven_core::{Error, Module, Result, Status};
 use clap::Parser;
 use plan::{Action, Scope, Step};
 
@@ -32,6 +33,18 @@ pub const MODULE: Module = Module {
 /// Fix audit findings. Without --apply it only prints the plan.
 #[derive(Parser)]
 struct Args {
+    /// Apply plan steps: comma-separated numbers, or "all"
+    #[arg(long, value_name = "STEPS")]
+    apply: Option<String>,
+    /// Undo a previous run, restoring its snapshot
+    #[arg(long, value_name = "SNAPSHOT", conflicts_with = "apply")]
+    rollback: Option<String>,
+    /// List snapshots of previous runs
+    #[arg(long, conflicts_with_all = ["apply", "rollback"])]
+    list: bool,
+    /// Where snapshots are kept
+    #[arg(long, hide = true)]
+    state: Option<PathBuf>,
     /// Audit a directory tree instead of the live system
     #[arg(long, hide = true)]
     root: Option<PathBuf>,
@@ -98,6 +111,26 @@ fn render(host_name: &str, steps: &[Step], color: bool) -> String {
     out
 }
 
+fn is_root() -> bool {
+    std::fs::read_to_string("/proc/self/status").is_ok_and(|s| {
+        s.lines()
+            .find_map(|l| l.strip_prefix("Uid:"))
+            .and_then(|l| l.split_whitespace().nth(1).map(|euid| euid == "0"))
+            .unwrap_or(false)
+    })
+}
+
+/// Root keeps snapshots in /var/lib, users in their XDG state directory.
+fn state_dir(host: &Host, fixture: bool, root: bool) -> PathBuf {
+    if fixture || root {
+        return host.sys("/var/lib/cirven/harden");
+    }
+    match std::env::var_os("XDG_STATE_HOME") {
+        Some(dir) if !dir.is_empty() => PathBuf::from(dir).join("cirven/harden"),
+        _ => host.home(".local/state/cirven/harden"),
+    }
+}
+
 /// Entry point for `cirven harden`. Receives the arguments after the module name
 /// and returns the process exit code.
 pub fn run(args: &[String]) -> Result<u8> {
@@ -108,11 +141,68 @@ pub fn run(args: &[String]) -> Result<u8> {
         Some(root) => Host::at(root, &args.home),
         None => Host::live(),
     };
+    let root = is_root();
+    let state = args
+        .state
+        .clone()
+        .unwrap_or_else(|| state_dir(&host, args.root.is_some(), root));
+
+    if args.list {
+        let snaps = apply::list(&state);
+        if snaps.is_empty() {
+            println!("no snapshots in {}", state.display());
+        }
+        for (id, rolled, steps) in snaps {
+            let mark = if rolled { "  (rolled back)" } else { "" };
+            println!("{id}{mark}");
+            for s in steps {
+                println!("    {s}");
+            }
+        }
+        return Ok(0);
+    }
+    if let Some(id) = &args.rollback {
+        let snap = apply::rollback(&state, id).map_err(Error::Other)?;
+        println!("rolled back {} ({} steps):", snap.id, snap.steps.len());
+        for s in snap.steps {
+            println!("    {s}");
+        }
+        return Ok(0);
+    }
+
     let report = cirven_audit::scan(&host);
     let steps = plan::build(&host, &report);
-    print!(
-        "{}",
-        render(&report.host, &steps, std::io::stdout().is_terminal())
-    );
+    let Some(spec) = &args.apply else {
+        print!(
+            "{}",
+            render(&report.host, &steps, std::io::stdout().is_terminal())
+        );
+        return Ok(0);
+    };
+
+    let picked = plan::select(spec, &steps).map_err(Error::Other)?;
+    if picked.is_empty() {
+        println!("nothing to apply.");
+        return Ok(0);
+    }
+    let chosen: Vec<&Step> = picked.iter().map(|&i| &steps[i]).collect();
+    if args.root.is_none() && !root && chosen.iter().any(|s| s.scope == Scope::System) {
+        let system: Vec<String> = picked
+            .iter()
+            .filter(|&&i| steps[i].scope == Scope::System)
+            .map(|i| (i + 1).to_string())
+            .collect();
+        return Err(Error::Other(format!(
+            "step {} changes system files; run: sudo cirven harden --apply {}",
+            system.join(","),
+            system.join(",")
+        )));
+    }
+    let snap = apply::apply(&host, &chosen, &state).map_err(Error::Other)?;
+    println!("snapshot {} saved in {}", snap.id, state.display());
+    for s in &chosen {
+        println!("applied: {}", s.title);
+    }
+    println!("undo with: cirven harden --rollback {}", snap.id);
     Ok(0)
 }

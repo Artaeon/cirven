@@ -131,6 +131,8 @@ dependencies = [
  "cirven-audit",
  "cirven-core",
  "clap",
+ "serde",
+ "serde_json",
  "tempfile",
 ]
 
