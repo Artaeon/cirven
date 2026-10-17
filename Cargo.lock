@@ -128,7 +128,10 @@ dependencies = [
 name = "cirven-harden"
 version = "0.0.0"
 dependencies = [
+ "cirven-audit",
  "cirven-core",
+ "clap",
+ "tempfile",
 ]
 
 [[package]]
