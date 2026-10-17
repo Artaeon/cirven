@@ -1,0 +1,45 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<meta http-equiv="Content-Security-Policy" content="default-src 'none'; style-src 'self'; img-src 'self'; base-uri 'none'; form-action 'none'">
+<title>cirven watch</title>
+<meta name="description" content="cirven watch: detect persistence on a Linux workstation the moment it is planted.">
+<link rel="icon" href="/favicon.svg">
+<link rel="stylesheet" href="/style.css">
+</head>
+<body>
+<p><a href="/">cirven systems</a> / modules / watch</p>
+<h1>cirven watch</h1>
+<p>Malware that wants to survive a reboot has to write somewhere. watch knows those places, keeps a baseline, and tells you when one changes, and why that matters.</p>
+
+<h2>usage</h2>
+<pre><span class="p">$</span> cirven watch baseline
+indexed 214 persistence points.
+<span class="p">$</span> cirven watch
+<span class="w">[alert]</span> new user unit ~/.config/systemd/user/dbus-helper.service
+        ExecStart=/home/r/.cache/.x/run  <span class="d">(binary in cache dir, hidden name)</span>
+        written by: pid 8812 /usr/bin/python3 setup.py</pre>
+
+<h2>watched</h2>
+<ul>
+<li>systemd units and timers, system and user</li>
+<li>xdg autostart, compositor exec lines (hyprland exec-once, sway exec)</li>
+<li>shell rc files: .bashrc, .zshrc, .profile, fish conf.d</li>
+<li>cron, at, anacron</li>
+<li>~/.ssh/authorized_keys, ssh config ProxyCommand</li>
+<li>/etc/ld.so.preload, LD_PRELOAD in environment files</li>
+<li>pacman hooks, udev rules, PAM config, sudoers.d, kernel modules</li>
+<li>git hooks and core.hooksPath, editor plugin dirs</li>
+</ul>
+
+<h2>how</h2>
+<p>fanotify for live events with the writing process attached, plus a hashed baseline to catch changes made while watch was not running. Alerts go to the desktop, a log, or a webhook.</p>
+
+<h2>threat model</h2>
+<p>Stops: silent persistence by user-level malware, poisoned packages and install scripts. Does not stop: a root-level attacker who disables watch first. Tamper attempts are logged, and the baseline can be checked from a clean boot.</p>
+
+<footer><hr>status: <span class="w">planned</span> &middot; <a href="/">back</a></footer>
+</body>
+</html>
