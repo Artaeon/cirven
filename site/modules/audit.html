@@ -12,36 +12,46 @@
 <body>
 <p><a href="/">cirven systems</a> / modules / audit</p>
 <h1>cirven audit</h1>
-<p>Reads your system, changes nothing, and tells you how an attacker would get in. Findings are ranked by the attack paths they open, not by checklist order.</p>
+<p>Reads your system, changes nothing, and tells you how an attacker would get in. Findings are ranked by the attack paths they open, not by checklist order: a password-accepting sshd is info when it is off, high when it listens on every interface.</p>
 
 <h2>usage</h2>
 <pre><span class="p">$</span> cirven audit
-<span class="w">[high]</span> ~/.bash_history:412  github token in plaintext (ghp_****)
-<span class="w">[high]</span> sshd: PasswordAuthentication yes, port 22 open on 0.0.0.0
-       <span class="d">path: exposed sshd + password auth -> remote brute force</span>
-<span class="w">[med ]</span> no firewall rules loaded (nftables empty)
-<span class="ok">[ok  ]</span> root fs on LUKS2, argon2id
-<span class="ok">[ok  ]</span> secure boot enabled, own keys enrolled
-5 findings, 2 high. run <code>cirven harden --plan</code> to fix.</pre>
+cirven audit · laptop
+
+<span class="w">[high]</span> tcp port 8000 open on all interfaces
+       at   0.0.0.0:8000 · python3 -m http.server 8000
+       path a dev file server: anyone on the same network can browse and download the directory
+       fix  bind it to 127.0.0.1, or stop it if unused
+<span class="w">[med ]</span> ssh key has no passphrase
+       at   ~/.ssh/id_ed25519
+       fix  ssh-keygen -p -f ~/.ssh/id_ed25519, then load it into ssh-agent
+<span class="w">[med ]</span> secure boot disabled
+<span class="w">[low ]</span> kernel.kptr_restrict = 0
+<span class="ok">[ok  ]</span> root filesystem encrypted (LUKS2)
+<span class="ok">[ok  ]</span> screen locks after 150s idle (omarchy shell)
+
+4 findings (1 high, 2 med, 1 low) · 12 passed · 1 skipped</pre>
+<p><code>--json</code> for machines, <code>-q</code> for findings only. Exit code: 0 nothing above low, 1 medium, 2 high, 3 critical.</p>
 
 <h2>checks</h2>
 <ul>
-<li>network: listening sockets, firewall state, exposed services</li>
-<li>ssh: sshd config, authorized_keys, unencrypted private keys, agent forwarding</li>
-<li>secrets: tokens and keys in shell history, dotfiles, .env files, git configs</li>
-<li>disk: LUKS version and KDF, swap and hibernation encryption</li>
-<li>boot: secure boot, bootloader and kernel cmdline, unsigned modules</li>
-<li>accounts: sudo rules, passwordless sudo, polkit, PAM stack</li>
-<li>updates: pending security updates, kernel age, stale packages</li>
-<li>desktop: screen lock timeout, autostart entries, world-readable home files</li>
+<li>network: every listening tcp socket with its process, boot firewall (ufw, nftables, firewalld)</li>
+<li>ssh: effective sshd config as sshd reads it (includes, first value wins), key passphrases, key modes, agent forwarding</li>
+<li>secrets: tokens in shell histories, plaintext credential stores, .env files in your projects. always masked</li>
+<li>disk: root, /home and swap encryption, LUKS1 vs LUKS2, through LVM layers</li>
+<li>boot: secure boot and setup mode, kernel parameters that disable mitigations, pending reboot</li>
+<li>kernel: eleven hardening sysctls safe on any desktop</li>
+<li>accounts: extra uid 0 accounts, shadow permissions, passwordless sudo</li>
+<li>desktop: home permissions, idle screen lock (omarchy shell, hypridle)</li>
+<li>packages: how long since pacman last synced</li>
 </ul>
 
-<h2>output</h2>
-<p>Human-readable by default. <code>--json</code> for machines, <code>--sarif</code> for CI. Exit code reflects the highest severity, so it can gate scripts.</p>
+<h2>guarantees</h2>
+<p>Read only, proven by a test that snapshots a fixture system before and after a run. Secrets are shown as <code>ghp_****</code>, never in full. Decoys planted by <a href="/modules/lure.html">lure</a> are skipped so an audit cannot trip them.</p>
 
 <h2>threat model</h2>
-<p>Stops: misconfigurations an attacker would use, found before they are. Does not stop: an attacker already on the machine; they can lie to any tool running beside them. For that, see <a href="/modules/watch.html">watch</a>.</p>
+<p>Stops: misconfigurations an attacker would use, found before they are. Does not stop: an attacker already on the machine; they can lie to any tool running beside them. For that, see <a href="/modules/watch.html">watch</a>. Without root, sudo rules and firewall rules stay unread and are reported as skipped.</p>
 
-<footer><hr>status: <span class="w">planned</span> &middot; <a href="/">back</a></footer>
+<footer><hr>status: <span class="ok">experimental</span> &middot; <a href="/">back</a></footer>
 </body>
 </html>
