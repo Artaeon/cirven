@@ -37,12 +37,30 @@ All code is Apache-2.0 and free. A paid, optional **cirven relay** may come late
 hosted alerting for `lure`, a signed package-intel feed for `pkg` and a fleet view
 for teams. Self-hosting stays possible. Nothing is sold before it works.
 
+## Build
+
+Requires Rust 1.85+.
+
+```
+cargo build --release
+./target/release/cirven modules
+./target/release/cirven audit
+```
+
+Every module currently answers `not implemented yet` with exit code 64.
+
 ## Repository layout
 
 ```
-site/     the website: static HTML + one CSS file, no JavaScript
-brand/    logo (PNG original, traced SVG) and wallpapers
+crates/cirven/          the `cirven` binary: one subcommand per module
+crates/cirven-core/     shared types: module metadata, findings, severities, errors
+crates/cirven-<module>/ one crate per module, design notes in its lib.rs
+site/                   the website: static HTML + one CSS file, no JavaScript
+brand/                  logo (PNG original, traced SVG) and wallpapers
 ```
+
+Modules are separate crates so each keeps its own dependency tree and attack
+surface: `cage` and `key` will need kernel and hardware interfaces that `audit` never should.
 
 ## Website
 
