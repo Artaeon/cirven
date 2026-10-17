@@ -60,6 +60,7 @@ dependencies = [
  "cirven-cage",
  "cirven-core",
  "cirven-harden",
+ "cirven-key",
  "cirven-lure",
  "cirven-pkg",
  "cirven-watch",
@@ -86,6 +87,13 @@ version = "0.0.0"
 
 [[package]]
 name = "cirven-harden"
+version = "0.0.0"
+dependencies = [
+ "cirven-core",
+]
+
+[[package]]
+name = "cirven-key"
 version = "0.0.0"
 dependencies = [
  "cirven-core",

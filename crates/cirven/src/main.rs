@@ -27,6 +27,8 @@ enum Command {
     Pkg(Passthrough),
     /// Sandbox tools and AI agents to what they need
     Cage(Passthrough),
+    /// Hardware key + password; unplug and it all locks
+    Key(Passthrough),
 }
 
 /// Arguments handed to the module unparsed; each module owns its own options.
@@ -43,6 +45,7 @@ const MODULES: &[&Module] = &[
     &cirven_lure::MODULE,
     &cirven_pkg::MODULE,
     &cirven_cage::MODULE,
+    &cirven_key::MODULE,
 ];
 
 fn main() -> ExitCode {
@@ -57,6 +60,7 @@ fn main() -> ExitCode {
         Command::Lure(p) => cirven_lure::run(&p.args),
         Command::Pkg(p) => cirven_pkg::run(&p.args),
         Command::Cage(p) => cirven_cage::run(&p.args),
+        Command::Key(p) => cirven_key::run(&p.args),
     };
     match result {
         Ok(()) => ExitCode::SUCCESS,
