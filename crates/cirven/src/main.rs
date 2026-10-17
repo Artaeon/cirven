@@ -27,7 +27,7 @@ enum Command {
     /// Decoy credentials that alarm when touched
     #[command(disable_help_flag = true)]
     Lure(Passthrough),
-    /// Inspect AUR/npm/pip packages before install
+    /// Inspect AUR and npm packages before install
     #[command(disable_help_flag = true)]
     Pkg(Passthrough),
     /// Sandbox tools and AI agents to what they need

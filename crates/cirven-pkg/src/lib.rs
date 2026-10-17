@@ -4,7 +4,8 @@
 //! - sources: domain changes, non-upstream hosts, missing or skipped checksums
 //! - scripts: network fetches, pipes to shells, base64 and eval, writes outside the package
 //! - history: diff against the previous version, new maintainer, recent adoption
-//! - npm/pip: install-time scripts, typosquat distance to popular names, binary blobs
+//! - npm: install-time scripts, typosquat distance to popular names, package age
+//! - planned: pip, binary blobs
 //!
 //! `cirven pkg wrap paru` checks every install through an AUR helper.
 //!
@@ -23,7 +24,7 @@ use clap::{Parser, Subcommand};
 
 pub const MODULE: Module = Module {
     name: "pkg",
-    summary: "inspect AUR/npm/pip packages before install",
+    summary: "inspect AUR and npm packages before install",
     status: Status::Experimental,
 };
 
