@@ -6,6 +6,7 @@ pub mod desktop;
 pub mod disk;
 pub mod kernel;
 pub mod network;
+pub mod packages;
 pub mod secrets;
 pub mod ssh;
 
@@ -37,4 +38,5 @@ pub fn run_all(host: &Host, ctx: &Context, report: &mut Report) {
     kernel::check(host, ctx, report);
     accounts::check(host, ctx, report);
     desktop::check(host, ctx, report);
+    packages::check(host, ctx, report);
 }
