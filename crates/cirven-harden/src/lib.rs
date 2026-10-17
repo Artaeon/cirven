@@ -111,26 +111,6 @@ fn render(host_name: &str, steps: &[Step], color: bool) -> String {
     out
 }
 
-fn is_root() -> bool {
-    std::fs::read_to_string("/proc/self/status").is_ok_and(|s| {
-        s.lines()
-            .find_map(|l| l.strip_prefix("Uid:"))
-            .and_then(|l| l.split_whitespace().nth(1).map(|euid| euid == "0"))
-            .unwrap_or(false)
-    })
-}
-
-/// Root keeps snapshots in /var/lib, users in their XDG state directory.
-fn state_dir(host: &Host, fixture: bool, root: bool) -> PathBuf {
-    if fixture || root {
-        return host.sys("/var/lib/cirven/harden");
-    }
-    match std::env::var_os("XDG_STATE_HOME") {
-        Some(dir) if !dir.is_empty() => PathBuf::from(dir).join("cirven/harden"),
-        _ => host.home(".local/state/cirven/harden"),
-    }
-}
-
 /// Entry point for `cirven harden`. Receives the arguments after the module name
 /// and returns the process exit code.
 pub fn run(args: &[String]) -> Result<u8> {
@@ -141,11 +121,11 @@ pub fn run(args: &[String]) -> Result<u8> {
         Some(root) => Host::at(root, &args.home),
         None => Host::live(),
     };
-    let root = is_root();
+    let root = cirven_core::is_root();
     let state = args
         .state
         .clone()
-        .unwrap_or_else(|| state_dir(&host, args.root.is_some(), root));
+        .unwrap_or_else(|| cirven_core::state_dir(&host, MODULE.name, args.root.is_some()));
 
     if args.list {
         let snaps = apply::list(&state);

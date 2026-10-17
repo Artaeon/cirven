@@ -156,6 +156,28 @@ impl From<std::io::Error> for Error {
 
 pub type Result<T> = std::result::Result<T, Error>;
 
+/// Whether the effective user is root.
+pub fn is_root() -> bool {
+    std::fs::read_to_string("/proc/self/status").is_ok_and(|s| {
+        s.lines()
+            .find_map(|l| l.strip_prefix("Uid:"))
+            .and_then(|l| l.split_whitespace().nth(1).map(|euid| euid == "0"))
+            .unwrap_or(false)
+    })
+}
+
+/// Where a module keeps its state: under /var/lib for root and for fixture
+/// trees, otherwise in the user's XDG state directory.
+pub fn state_dir(host: &Host, module: &str, fixture: bool) -> std::path::PathBuf {
+    if fixture || is_root() {
+        return host.sys(&format!("/var/lib/cirven/{module}"));
+    }
+    match std::env::var_os("XDG_STATE_HOME") {
+        Some(dir) if !dir.is_empty() => std::path::PathBuf::from(dir).join("cirven").join(module),
+        _ => host.home(&format!(".local/state/cirven/{module}")),
+    }
+}
+
 /// Parse a module's own arguments. `Ok(None)` means help or version was
 /// printed and the module should exit successfully without doing anything.
 pub fn parse_args<T: clap::Parser>(module: &str, args: &[String]) -> Result<Option<T>> {
