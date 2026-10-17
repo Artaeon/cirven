@@ -1,0 +1,40 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<meta http-equiv="Content-Security-Policy" content="default-src 'none'; style-src 'self'; img-src 'self'; base-uri 'none'; form-action 'none'">
+<title>cirven harden</title>
+<meta name="description" content="cirven harden: fix workstation weaknesses with a preview, an apply step and a rollback.">
+<link rel="icon" href="/favicon.svg">
+<link rel="stylesheet" href="/style.css">
+</head>
+<body>
+<p><a href="/">cirven systems</a> / modules / harden</p>
+<h1>cirven harden</h1>
+<p>Turns audit findings into fixes. Nothing changes without a plan you have read, and every applied plan can be rolled back.</p>
+
+<h2>usage</h2>
+<pre><span class="p">$</span> cirven harden --plan
+1  sshd: PasswordAuthentication no            /etc/ssh/sshd_config.d/50-cirven.conf
+2  nftables: default deny inbound, allow lo   /etc/nftables.conf
+3  history: purge 1 secret, set HISTIGNORE    ~/.bash_history ~/.bashrc
+<span class="p">$</span> cirven harden --apply 1,2
+snapshot 2026-10-17T14:30Z saved. applied 2 changes.
+<span class="p">$</span> cirven harden --rollback 2026-10-17T14:30Z</pre>
+
+<h2>how</h2>
+<ul>
+<li>every fix is a small, declared change: a drop-in file, a sysctl, a mode bit</li>
+<li>drop-ins over edits, so upstream configs stay untouched</li>
+<li>files are snapshotted before change; rollback restores them byte for byte</li>
+<li>fixes that could lock you out (ssh, firewall) apply with a dead-man timer: no confirmation within 60s, auto-rollback</li>
+<li>profiles: <code>laptop</code>, <code>dev</code>, <code>paranoid</code></li>
+</ul>
+
+<h2>threat model</h2>
+<p>Stops: the attack paths audit reports. Does not stop: what you re-enable later; run audit again. A leaked secret is purged locally, but it must still be rotated at its issuer.</p>
+
+<footer><hr>status: <span class="w">planned</span> &middot; <a href="/">back</a></footer>
+</body>
+</html>
