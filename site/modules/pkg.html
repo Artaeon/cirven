@@ -1,0 +1,39 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<meta http-equiv="Content-Security-Policy" content="default-src 'none'; style-src 'self'; img-src 'self'; base-uri 'none'; form-action 'none'">
+<title>cirven pkg</title>
+<meta name="description" content="cirven pkg: inspect AUR, npm and pip packages for malicious behavior before they install.">
+<link rel="icon" href="/favicon.svg">
+<link rel="stylesheet" href="/style.css">
+</head>
+<body>
+<p><a href="/">cirven systems</a> / modules / pkg</p>
+<h1>cirven pkg</h1>
+<p>An AUR build script or an npm postinstall runs with your rights before you ever use the package. Malicious AUR packages shipping remote-access trojans have been found in the wild. pkg reads what will run before it runs.</p>
+
+<h2>usage</h2>
+<pre><span class="p">$</span> cirven pkg check aur/some-browser-bin
+<span class="w">[high]</span> source pulls from a personal github repo, not upstream
+<span class="w">[high]</span> install hook runs: curl -s https://... | python
+<span class="w">[med ]</span> maintainer account 3 days old, adopted orphan package
+<span class="d">diff vs last version: +1 source, +1 install hook</span>
+verdict: <span class="w">do not install</span>
+<span class="p">$</span> cirven pkg wrap paru   <span class="d"># check every install automatically</span></pre>
+
+<h2>signals</h2>
+<ul>
+<li>sources: domain changes, non-upstream hosts, missing or skipped checksums</li>
+<li>scripts: network fetches, pipes to shells, base64 and eval, writes outside the package</li>
+<li>history: diff against the previous version; new maintainer; recent adoption</li>
+<li>npm/pip: install-time scripts, typosquat distance to popular names, binary blobs</li>
+</ul>
+
+<h2>threat model</h2>
+<p>Stops: the common, lazy supply-chain attacks, which are most of them. Does not stop: a patient attacker hiding logic in compiled upstream code. Pair with <a href="/modules/cage.html">cage</a> to build untrusted packages without network or home access.</p>
+
+<footer><hr>status: <span class="w">planned</span> &middot; <a href="/">back</a></footer>
+</body>
+</html>
