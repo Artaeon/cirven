@@ -18,10 +18,11 @@
 
 pub mod baseline;
 pub mod points;
+pub mod suspicious;
 
 use std::path::{Path, PathBuf};
 
-use baseline::{Baseline, Change};
+use baseline::Change;
 use cirven_core::{Error, Host, Module, Result, Status};
 use clap::{Parser, Subcommand};
 
@@ -97,30 +98,57 @@ fn check(host: &Host, path: &Path) -> Result<u8> {
         println!("no changes.");
         return Ok(0);
     }
-    report(&changes, &reasons, &new);
+    let alerts = report(host, &changes, &reasons);
     println!(
-        "\n{} changes. if they are yours: cirven watch accept",
+        "\n{} changes, {alerts} suspicious. if they are yours: cirven watch accept",
         changes.len()
     );
-    Ok(1)
+    Ok(if alerts > 0 { 2 } else { 1 })
 }
 
+/// Readable text of a changed point, small enough to scan.
+fn read_small(path: &Path) -> Option<String> {
+    let meta = std::fs::symlink_metadata(path).ok()?;
+    if !meta.is_file() || meta.len() > 256 * 1024 {
+        return None;
+    }
+    String::from_utf8(std::fs::read(path).ok()?).ok()
+}
+
+/// Prints the changes; returns how many look malicious.
 fn report(
+    host: &Host,
     changes: &[(Change, String)],
     reasons: &std::collections::BTreeMap<String, &'static str>,
-    _new: &Baseline,
-) {
+) -> usize {
+    let mut alerts = 0;
     for (change, shown) in changes {
-        let tag = match change {
-            Change::Added => "[added  ]",
-            Change::Changed => "[changed]",
-            Change::Removed => "[removed]",
+        let lines = match change {
+            Change::Removed => Vec::new(),
+            _ => read_small(&baseline::resolve(host, shown))
+                .map(|t| suspicious::scan(&t, 5))
+                .unwrap_or_default(),
+        };
+        let alert = lines.iter().any(|l| l.alert.is_some());
+        alerts += usize::from(alert);
+        let tag = match (change, alert) {
+            (_, true) => "[ALERT  ]",
+            (Change::Added, _) => "[added  ]",
+            (Change::Changed, _) => "[changed]",
+            (Change::Removed, _) => "[removed]",
         };
         println!("{tag} {shown}");
         if let Some(why) = reasons.get(shown) {
             println!("          {why}");
         }
+        for l in lines {
+            match l.alert {
+                Some(why) => println!("          {:>4}: {}   <- {why}", l.number, l.text),
+                None => println!("          {:>4}: {}", l.number, l.text),
+            }
+        }
     }
+    alerts
 }
 
 /// Entry point for `cirven watch`. Receives the arguments after the module name

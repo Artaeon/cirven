@@ -172,6 +172,7 @@ version = "0.0.0"
 dependencies = [
  "cirven-core",
  "clap",
+ "regex",
  "serde",
  "serde_json",
  "sha2",
