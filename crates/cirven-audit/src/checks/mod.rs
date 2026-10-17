@@ -1,5 +1,6 @@
 //! The checks. Each one reads the host and adds findings, passes or skips.
 
+pub mod boot;
 pub mod disk;
 pub mod network;
 pub mod secrets;
@@ -29,4 +30,5 @@ pub fn run_all(host: &Host, ctx: &Context, report: &mut Report) {
     ssh::check(host, ctx, report);
     secrets::check(host, ctx, report);
     disk::check(host, ctx, report);
+    boot::check(host, ctx, report);
 }
