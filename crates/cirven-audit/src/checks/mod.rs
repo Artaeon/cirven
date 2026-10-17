@@ -11,6 +11,9 @@ pub mod secrets;
 pub mod ssh;
 
 use crate::report::Report;
+use std::collections::HashSet;
+use std::path::PathBuf;
+
 use cirven_core::Host;
 
 /// Facts several checks depend on, gathered once per run.
@@ -18,6 +21,8 @@ use cirven_core::Host;
 pub struct Context {
     pub listeners: Vec<network::Listener>,
     pub firewall: Option<&'static str>,
+    /// Decoys planted by cirven lure. Reading them would trip the alarm.
+    pub decoys: HashSet<PathBuf>,
 }
 
 impl Context {
@@ -25,8 +30,26 @@ impl Context {
         Context {
             listeners: network::listeners(host),
             firewall: network::firewall(host),
+            decoys: decoys(host),
         }
     }
+}
+
+/// Paths from lure's ledger. Only the ledger is read, never the decoys.
+fn decoys(host: &Host) -> HashSet<PathBuf> {
+    let ledger = cirven_core::state_dir(host, "lure").join("planted.json");
+    let Some(json) = std::fs::read_to_string(ledger)
+        .ok()
+        .and_then(|t| serde_json::from_str::<serde_json::Value>(&t).ok())
+    else {
+        return HashSet::new();
+    };
+    json["planted"]
+        .as_array()
+        .into_iter()
+        .flatten()
+        .filter_map(|p| p["path"].as_str().map(PathBuf::from))
+        .collect()
 }
 
 pub fn run_all(host: &Host, ctx: &Context, report: &mut Report) {

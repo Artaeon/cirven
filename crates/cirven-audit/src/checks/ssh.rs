@@ -220,7 +220,7 @@ pub fn key_encrypted(text: &str) -> Option<bool> {
     None
 }
 
-fn user_keys(host: &Host, report: &mut Report) {
+fn user_keys(host: &Host, ctx: &Context, report: &mut Report) {
     let dir = host.home(".ssh");
     let Ok(entries) = fs::read_dir(&dir) else {
         report.pass("no ~/.ssh directory");
@@ -241,6 +241,9 @@ fn user_keys(host: &Host, report: &mut Report) {
     let mut paths: Vec<_> = entries.flatten().map(|e| e.path()).collect();
     paths.sort();
     for path in paths {
+        if ctx.decoys.contains(&path) {
+            continue;
+        }
         if !is_small_file(&path) || path.extension().is_some_and(|e| e == "pub") {
             continue;
         }
@@ -303,7 +306,7 @@ fn is_small_file(path: &Path) -> bool {
 
 pub fn check(host: &Host, ctx: &Context, report: &mut Report) {
     server(host, ctx, report);
-    user_keys(host, report);
+    user_keys(host, ctx, report);
 }
 
 #[cfg(test)]
@@ -419,7 +422,7 @@ mod tests {
         fs::write(host.home(".ssh/id_ed25519.pub"), "ssh-ed25519 AAAA").unwrap();
         fs::write(host.home(".ssh/config"), "Host *\n  ForwardAgent yes\n").unwrap();
         let mut r = Report::default();
-        user_keys(&host, &mut r);
+        user_keys(&host, &Context::default(), &mut r);
         let ids: Vec<_> = r.findings.iter().map(|f| f.id.as_str()).collect();
         assert_eq!(
             ids,
@@ -439,7 +442,7 @@ mod tests {
         fs::write(&key, openssh_key("aes256-ctr")).unwrap();
         fs::set_permissions(&key, fs::Permissions::from_mode(0o600)).unwrap();
         let mut r = Report::default();
-        user_keys(&host, &mut r);
+        user_keys(&host, &Context::default(), &mut r);
         assert!(r.findings.is_empty());
         assert_eq!(r.passed, ["all 1 ssh private keys have a passphrase"]);
     }

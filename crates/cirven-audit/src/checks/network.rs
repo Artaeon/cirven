@@ -260,6 +260,7 @@ mod tests {
                 process: Some(process.into()),
             }],
             firewall,
+            ..Context::default()
         }
     }
 
