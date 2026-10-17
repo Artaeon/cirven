@@ -1,0 +1,37 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<meta http-equiv="Content-Security-Policy" content="default-src 'none'; style-src 'self'; img-src 'self'; base-uri 'none'; form-action 'none'">
+<title>cirven lure</title>
+<meta name="description" content="cirven lure: decoy credentials on your own machine that raise an alarm when read or used.">
+<link rel="icon" href="/favicon.svg">
+<link rel="stylesheet" href="/style.css">
+</head>
+<body>
+<p><a href="/">cirven systems</a> / modules / lure</p>
+<h1>cirven lure</h1>
+<p>Infostealers grab whatever looks valuable. lure gives them something that looks valuable and is worth nothing except the alarm it raises. You never touch the decoys, so any access is a signal with almost no false positives.</p>
+
+<h2>usage</h2>
+<pre><span class="p">$</span> cirven lure plant
+~/.aws/credentials.bak          fake aws key pair
+~/.ssh/id_ed25519_old           fake private key
+~/projects/.env.production      fake db url + api tokens
+~/.config/chromium-backup/      fake login store
+<span class="p">$</span> cirven lure status
+<span class="w">[tripped]</span> ~/.ssh/id_ed25519_old read by pid 4410 /tmp/.u/upd</pre>
+
+<h2>two tripwires</h2>
+<ul>
+<li><b>read</b>: fanotify reports which process opened a decoy. local, offline, instant.</li>
+<li><b>use</b>: decoy tokens and URLs call home when an attacker tries them elsewhere, so you learn about the leak even if the read was missed. needs a callback endpoint: self-hosted, or cirven relay.</li>
+</ul>
+
+<h2>threat model</h2>
+<p>Stops: unnoticed credential theft by malware, poisoned packages, and curious agents. Does not stop: an attacker who reads only real secrets. Decoys sit next to them on purpose, and real secrets belong in a vault (see <a href="/modules/key.html">key</a>).</p>
+
+<footer><hr>status: <span class="w">planned</span> &middot; <a href="/">back</a></footer>
+</body>
+</html>
