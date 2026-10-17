@@ -81,7 +81,7 @@ fn main() -> ExitCode {
 
 fn list() {
     for m in MODULES {
-        println!("{:<8} {:<8} {}", m.name, m.status, m.summary);
+        println!("{:<8} {:<13} {}", m.name, m.status, m.summary);
     }
 }
 
