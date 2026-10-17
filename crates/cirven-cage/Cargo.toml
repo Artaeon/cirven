@@ -1,0 +1,15 @@
+[package]
+name = "cirven-cage"
+description = "Confine tools and AI agents to what they need"
+version.workspace = true
+edition.workspace = true
+rust-version.workspace = true
+license.workspace = true
+repository.workspace = true
+homepage.workspace = true
+
+[dependencies]
+cirven-core.workspace = true
+
+[lints]
+workspace = true

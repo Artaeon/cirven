@@ -15,6 +15,7 @@ cirven-harden.workspace = true
 cirven-watch.workspace = true
 cirven-lure.workspace = true
 cirven-pkg.workspace = true
+cirven-cage.workspace = true
 clap.workspace = true
 
 [lints]
