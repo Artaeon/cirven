@@ -169,6 +169,7 @@ pub fn atime_enabled(host: &Host) -> Option<bool> {
 pub fn remove(ledger: &mut Ledger) -> Vec<(PathBuf, Result<(), String>)> {
     let mut results = Vec::new();
     let mut keep = Vec::new();
+    let mut dirs = Vec::new();
     for p in ledger.planted.drain(..) {
         let outcome = match fs::read(&p.path) {
             Err(e) if e.kind() == std::io::ErrorKind::NotFound => Ok(()),
@@ -179,13 +180,18 @@ pub fn remove(ledger: &mut Ledger) -> Vec<(PathBuf, Result<(), String>)> {
             Ok(_) => fs::remove_file(&p.path).map_err(|e| e.to_string()),
         };
         if outcome.is_ok() {
-            for dir in p.created_dirs.iter().rev() {
-                let _ = fs::remove_dir(dir);
-            }
+            dirs.extend(p.created_dirs.iter().cloned());
         } else {
             keep.push(p.clone());
         }
         results.push((p.path, outcome));
+    }
+    // Decoys can share a directory one of them created: only once all are
+    // gone can it go, deepest first. remove_dir refuses non-empty ones.
+    dirs.sort_by_key(|d| std::cmp::Reverse(d.components().count()));
+    dirs.dedup();
+    for dir in dirs {
+        let _ = fs::remove_dir(dir);
     }
     ledger.planted = keep;
     results
