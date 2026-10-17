@@ -20,14 +20,19 @@ everything you ship. it deserves better than a default install.</pre>
 <h1>modules</h1>
 <table>
 <tr><th>name</th><th>does</th><th>status</th></tr>
-<tr><td><a href="/modules/audit.html">audit</a></td><td>find weaknesses, rank them by real attack paths</td><td class="w">planned</td></tr>
-<tr><td><a href="/modules/harden.html">harden</a></td><td>fix findings: preview, apply, roll back</td><td class="w">planned</td></tr>
-<tr><td><a href="/modules/watch.html">watch</a></td><td>detect persistence: new units, autostarts, hooks</td><td class="w">planned</td></tr>
-<tr><td><a href="/modules/lure.html">lure</a></td><td>decoy credentials that alarm when touched</td><td class="w">planned</td></tr>
-<tr><td><a href="/modules/pkg.html">pkg</a></td><td>inspect AUR/npm/pip packages before install</td><td class="w">planned</td></tr>
-<tr><td><a href="/modules/cage.html">cage</a></td><td>sandbox tools and AI agents to what they need</td><td class="w">planned</td></tr>
+<tr><td><a href="/modules/audit.html">audit</a></td><td>find weaknesses, rank them by real attack paths</td><td class="ok">experimental</td></tr>
+<tr><td><a href="/modules/harden.html">harden</a></td><td>fix findings: preview, apply, roll back</td><td class="ok">experimental</td></tr>
+<tr><td><a href="/modules/watch.html">watch</a></td><td>detect persistence: new units, autostarts, hooks</td><td class="ok">experimental</td></tr>
+<tr><td><a href="/modules/lure.html">lure</a></td><td>decoy credentials that alarm when touched</td><td class="ok">experimental</td></tr>
+<tr><td><a href="/modules/pkg.html">pkg</a></td><td>inspect AUR and npm packages before install</td><td class="ok">experimental</td></tr>
+<tr><td><a href="/modules/cage.html">cage</a></td><td>sandbox tools and AI agents to what they need</td><td class="ok">experimental</td></tr>
 <tr><td><a href="/modules/key.html">key</a></td><td>hardware key + password; unplug and it all locks</td><td class="w">planned</td></tr>
 </table>
+
+<h1>install</h1>
+<pre><span class="p">$</span> cargo install --locked --git https://github.com/Artaeon/cirven cirven
+<span class="p">$</span> cirven audit</pre>
+<p class="d">linux only. rust 1.85+. experimental: read the threat model of a module before you rely on it.</p>
 
 <h1>principles</h1>
 <ul>
@@ -41,17 +46,18 @@ everything you ship. it deserves better than a default install.</pre>
 
 <h1>license &amp; price</h1>
 <table>
-<tr><td>code</td><td>open source, <a href="https://www.apache.org/licenses/LICENSE-2.0">Apache-2.0</a>. all modules. free.</td></tr>
+<tr><td>code</td><td>open source, <a href="https://www.apache.org/licenses/LICENSE-2.0">Apache-2.0</a>. all modules. free. <a href="https://github.com/Artaeon/cirven">github.com/Artaeon/cirven</a></td></tr>
 <tr><td>paid</td><td>later, optional: <b>cirven relay</b>, hosted alerting for lure, signed package-intel feed for pkg, fleet overview for teams. self-hosting stays possible.</td></tr>
 <tr><td>price</td><td>none yet. nothing gets sold before it works.</td></tr>
 </table>
 <p class="d">security software you cannot read is security software you have to trust. we would rather be checked.</p>
 
 <h1>roadmap</h1>
-<pre>[1] audit + harden   <span class="d">know and fix your own machine</span>
-[2] watch + lure     <span class="d">notice when someone gets in</span>
-[3] pkg  + cage      <span class="d">stop it before it runs</span>
-[4] key              <span class="d">tie it all to hardware</span></pre>
+<pre>[x] audit + harden   <span class="d">know and fix your own machine</span>
+[x] watch + lure     <span class="d">notice when someone gets in</span>
+[x] pkg  + cage      <span class="d">stop it before it runs</span>
+[ ] key              <span class="d">tie it all to hardware</span>
+[ ] relay            <span class="d">alerts and feeds that need a server</span></pre>
 
 <h1>contact</h1>
 <p>security issues: <a href="mailto:security@cirven.dev">security@cirven.dev</a> <span class="d">(<a href="/.well-known/security.txt">security.txt</a>)</span></p>
