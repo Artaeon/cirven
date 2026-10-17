@@ -166,7 +166,13 @@ dependencies = [
 name = "cirven-lure"
 version = "0.0.0"
 dependencies = [
+ "base64",
  "cirven-core",
+ "clap",
+ "serde",
+ "serde_json",
+ "sha2",
+ "tempfile",
 ]
 
 [[package]]
