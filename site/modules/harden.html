@@ -12,29 +12,40 @@
 <body>
 <p><a href="/">cirven systems</a> / modules / harden</p>
 <h1>cirven harden</h1>
-<p>Turns audit findings into fixes. Nothing changes without a plan you have read, and every applied plan can be rolled back.</p>
+<p>Turns audit findings into fixes. Without <code>--apply</code> it only prints the plan. Every applied run is snapshotted first and can be rolled back byte for byte.</p>
 
 <h2>usage</h2>
-<pre><span class="p">$</span> cirven harden --plan
-1  sshd: PasswordAuthentication no            /etc/ssh/sshd_config.d/50-cirven.conf
-2  nftables: default deny inbound, allow lo   /etc/nftables.conf
-3  history: purge 1 secret, set HISTIGNORE    ~/.bash_history ~/.bashrc
-<span class="p">$</span> cirven harden --apply 1,2
-snapshot 2026-10-17T14:30Z saved. applied 2 changes.
-<span class="p">$</span> cirven harden --rollback 2026-10-17T14:30Z</pre>
+<pre><span class="p">$</span> cirven harden
+cirven harden · plan for laptop
+
+ 1  user    chmod 700 ~/.ssh
+ 2  system  set kernel.kptr_restrict=1 in /etc/sysctl.d/99-zz-cirven.conf and live
+ 3  system  sshd: PasswordAuthentication no in /etc/ssh/sshd_config.d/10-cirven.conf
+            <span class="d">+ PasswordAuthentication no</span>
+ 4  manual  ssh key has no passphrase (~/.ssh/id_ed25519)
+            <span class="d">-> ssh-keygen -p -f ~/.ssh/id_ed25519, then load it into ssh-agent</span>
+
+nothing has been changed.
+<span class="p">$</span> cirven harden --apply 1
+<span class="p">$</span> sudo cirven harden --apply 2,3
+snapshot 20261017T143000Z saved in /var/lib/cirven/harden
+undo with: cirven harden --rollback 20261017T143000Z
+<span class="p">$</span> cirven harden --list</pre>
 
 <h2>how</h2>
 <ul>
-<li>every fix is a small, declared change: a drop-in file, a sysctl, a mode bit</li>
-<li>drop-ins over edits, so upstream configs stay untouched</li>
-<li>files are snapshotted before change; rollback restores them byte for byte</li>
-<li>fixes that could lock you out (ssh, firewall) apply with a dead-man timer: no confirmation within 60s, auto-rollback</li>
-<li>profiles: <code>laptop</code>, <code>dev</code>, <code>paranoid</code></li>
+<li>small declared changes only: a mode bit, a sysctl, a drop-in file cirven owns</li>
+<li>drop-ins over edits: upstream configs stay untouched. the sysctl file sorts last so it survives boot</li>
+<li>the snapshot is written before the first change; a failing step rolls back the whole run</li>
+<li>nothing restarts a service: sshd changes wait for your reload, the firewall is only suggested, so a fix cannot cut off a remote session</li>
+<li>passphrases, secure boot and secret rotation need judgement: printed as manual steps, never run</li>
+<li>chmod snapshots store the old mode only. private keys are never copied</li>
+<li>chmod refuses to follow symlinks. user steps run as you, system steps only under sudo</li>
 </ul>
 
 <h2>threat model</h2>
-<p>Stops: the attack paths audit reports. Does not stop: what you re-enable later; run audit again. A leaked secret is purged locally, but it must still be rotated at its issuer.</p>
+<p>Stops: the attack paths audit reports and harden can close. Does not stop: what you re-enable later; run audit again. A leaked secret is reported, but it must be rotated at its issuer.</p>
 
-<footer><hr>status: <span class="w">planned</span> &middot; <a href="/">back</a></footer>
+<footer><hr>status: <span class="ok">experimental</span> &middot; <a href="/">back</a></footer>
 </body>
 </html>
