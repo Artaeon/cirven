@@ -15,23 +15,31 @@
 <p>Every program you run can read your whole home directory: your ssh keys, your browser profile, your cloud credentials. AI coding agents make this worse. They run commands, and a prompt injection hidden in a README is enough to steer them. cage gives a process the project it works on and nothing else.</p>
 
 <h2>usage</h2>
-<pre><span class="p">$</span> cirven cage --profile agent -- claude
-fs:   rw ./  ro /usr  <span class="d">hidden: ~/.ssh ~/.aws ~/.gnupg ~/.config/chromium</span>
-net:  allow api.anthropic.com github.com registry.npmjs.org
-<span class="p">$</span> cirven cage --net none -- makepkg</pre>
+<pre><span class="p">$</span> cirven cage -p agent -- claude
+cage: profile agent · write . ~/.claude ~/.cache ... · net on
+<span class="p">$</span> cirven cage -- cat ~/.ssh/config
+cat: /home/u/.ssh/config: Permission denied
+<span class="p">$</span> cirven cage --no-net -- makepkg
+<span class="p">$</span> cirven cage --read ~/.gitconfig --write ./out -- ./build.sh
+<span class="p">$</span> cirven cage --list</pre>
 
 <h2>how</h2>
 <ul>
-<li>landlock for filesystem rules, no root required</li>
-<li>user and mount namespaces (bubblewrap-style) to hide paths entirely</li>
-<li>seccomp to drop syscalls a profile never needs</li>
-<li>egress allowlist per profile; every denied connection is logged</li>
-<li>profiles as plain text files you can read and diff</li>
+<li>landlock: the system read-only, the current directory writable, home out of reach. no root needed, inherited by every child</li>
+<li>no network: a private user and network namespace with nothing but a downed loopback. no tcp, no udp, no dns</li>
+<li>no_new_privs: sudo and setuid binaries cannot raise privileges inside the cage</li>
+<li>refuses to run when the kernel cannot enforce landlock, instead of pretending</li>
+<li>profiles: built-in <code>default</code>, <code>offline</code>, <code>agent</code>, or plain text files in ~/.config/cirven/cage/</li>
 </ul>
+<pre><span class="d"># ~/.config/cirven/cage/build.profile</span>
+include offline
+read  ~/.gitconfig
+write ./out</pre>
+<p class="d">planned: per-host egress allowlists, seccomp filters.</p>
 
 <h2>threat model</h2>
-<p>Stops: a confused or hijacked tool reading or sending what it should not. Does not stop: kernel exploits that escape the sandbox, or data you explicitly put inside the cage.</p>
+<p>Stops: a confused or hijacked tool reading or sending what it should not. Does not stop: kernel exploits that escape the sandbox, data you explicitly allow, or exfiltration over the network while it is on: use <code>--no-net</code> where you can.</p>
 
-<footer><hr>status: <span class="w">planned</span> &middot; <a href="/">back</a></footer>
+<footer><hr>status: <span class="ok">experimental</span> &middot; <a href="/">back</a></footer>
 </body>
 </html>
