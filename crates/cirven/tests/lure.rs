@@ -84,3 +84,39 @@ fn plant_trip_remove() {
     assert!(cirven(root, &["lure", "remove"]).status.success());
     assert_eq!(tree(root), before, "remove must leave the tree as it was");
 }
+
+#[test]
+fn watch_reports_the_reading_process() {
+    let dir = tempfile::tempdir().unwrap();
+    let root = dir.path();
+    fs::create_dir_all(root.join("home/user")).unwrap();
+    assert!(cirven(root, &["lure", "plant"]).status.success());
+
+    let watcher = Command::new(env!("CARGO_BIN_EXE_cirven"))
+        .args(["lure", "watch", "--events", "1", "--root"])
+        .arg(root)
+        .stdout(std::process::Stdio::piped())
+        .spawn()
+        .unwrap();
+    // Holds the decoy open and keeps reading it, so a slow watcher start
+    // on a busy CI runner still sees an access and the open file descriptor.
+    let mut reader = Command::new("sh")
+        .arg("-c")
+        .arg("exec 3< \"$0\"; i=0; while [ $i -lt 25 ]; do sleep 0.2; cat \"$0\" >/dev/null; i=$((i+1)); done")
+        .arg(root.join("home/user/.aws/credentials.bak"))
+        .spawn()
+        .unwrap();
+    let out = watcher.wait_with_output().unwrap();
+    let _ = reader.kill();
+    reader.wait().unwrap();
+    let text = String::from_utf8(out.stdout).unwrap();
+    assert_eq!(out.status.code(), Some(2), "{text}");
+    assert!(
+        text.contains("[TRIPPED] ~/.aws/credentials.bak read"),
+        "{text}"
+    );
+    assert!(
+        text.contains("sleep") || text.contains("sh -c"),
+        "opener not identified: {text}"
+    );
+}

@@ -16,6 +16,7 @@
 //! hijacked agents. It does not stop an attacker who reads only real secrets.
 
 pub mod decoys;
+pub mod live;
 pub mod plant;
 
 use std::path::PathBuf;
@@ -53,6 +54,29 @@ enum Command {
     Status,
     /// Delete the decoys that are still exactly as planted
     Remove,
+    /// Report every access to a decoy as it happens, with the process
+    Watch {
+        /// Also send a desktop notification
+        #[arg(long)]
+        notify: bool,
+        /// Stop after this many events (for testing)
+        #[arg(long, hide = true)]
+        events: Option<usize>,
+    },
+}
+
+fn notify(body: &str) {
+    // Best effort: no notification daemon is not an error.
+    let _ = std::process::Command::new("notify-send")
+        .args([
+            "--urgency=critical",
+            "--app-name=cirven",
+            "cirven lure: decoy touched",
+            body,
+        ])
+        .stdout(std::process::Stdio::null())
+        .stderr(std::process::Stdio::null())
+        .status();
 }
 
 /// Entry point for `cirven lure`. Receives the arguments after the module name
@@ -133,6 +157,30 @@ pub fn run(args: &[String]) -> Result<u8> {
                 println!("\nnote: home is mounted noatime, so reads are not visible here.");
             }
             Ok(0)
+        }
+        Command::Watch {
+            notify: desktop,
+            events,
+        } => {
+            if ledger.planted.is_empty() {
+                return Err(Error::Other(
+                    "no decoys planted. see: cirven lure plan".into(),
+                ));
+            }
+            println!("watching {} decoys · ctrl-c to stop", ledger.planted.len());
+            live::watch(&ledger.planted, events, |decoy, what, who| {
+                let shown = host.display(&decoy.path);
+                let by = if who.is_empty() {
+                    "process already gone".to_string()
+                } else {
+                    who.join("; ")
+                };
+                println!("[TRIPPED] {shown} {what} · {by}");
+                if desktop {
+                    notify(&format!("{shown} {what}\n{by}"));
+                }
+            })?;
+            Ok(2)
         }
         Command::Remove => {
             let results = plant::remove(&mut ledger);
