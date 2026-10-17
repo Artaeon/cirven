@@ -11,6 +11,7 @@
 //! Threat model: stops common supply-chain attacks. A patient attacker hiding
 //! logic in compiled upstream code needs `cirven-cage` as a second layer.
 
+pub mod aur;
 pub mod pkgbuild;
 
 use std::io::IsTerminal;
@@ -35,9 +36,9 @@ struct Args {
 
 #[derive(Subcommand)]
 enum Command {
-    /// Check a package: a PKGBUILD file or a directory containing one
+    /// Check a package: aur/<name>, or a PKGBUILD file or directory
     Check {
-        /// Path to a PKGBUILD or its directory
+        /// aur/<name>, or a path to a PKGBUILD or its directory
         target: String,
     },
 }
@@ -104,6 +105,64 @@ fn local(target: &Path) -> Result<(String, Option<(String, String)>)> {
     Ok((text, install))
 }
 
+/// Lines added since the last time this package was checked, if it was.
+fn changes_since_last(state: &Path, base: &str, text: &str) -> Option<Vec<String>> {
+    let path = state.join(format!("aur/{base}.PKGBUILD"));
+    let before = std::fs::read_to_string(&path).ok();
+    if let Some(dir) = path.parent() {
+        let _ = std::fs::create_dir_all(dir);
+        let _ = std::fs::write(&path, text);
+    }
+    let before = before?;
+    let old: std::collections::HashSet<&str> = before.lines().collect();
+    Some(
+        text.lines()
+            .filter(|l| !l.trim().is_empty() && !old.contains(l))
+            .map(|l| l.trim().to_string())
+            .collect(),
+    )
+}
+
+fn check_aur(name: &str, color: bool) -> Result<u8> {
+    if !aur::valid_name(name) {
+        return Err(Error::Other(format!("{name}: not a valid package name")));
+    }
+    let info = aur::info(name).map_err(Error::Other)?;
+    let text = aur::file(&info.package_base, "PKGBUILD").map_err(Error::Other)?;
+    let install = pkgbuild::parse(&text)
+        .vars
+        .get("install")
+        .filter(|n| aur::valid_name(n))
+        .and_then(|n| Some((n.clone(), aur::file(&info.package_base, n).ok()?)));
+    let mut findings = aur::assess(&info, std::time::SystemTime::now());
+    findings.extend(pkgbuild::analyse(
+        &text,
+        install.as_ref().map(|(n, t)| (n.as_str(), t.as_str())),
+    ));
+    findings.sort_by_key(|f| std::cmp::Reverse(f.severity));
+
+    let label = format!(
+        "aur/{} {} · maintainer {} · {} votes",
+        info.name,
+        info.version,
+        info.maintainer.as_deref().unwrap_or("none"),
+        info.num_votes
+    );
+    print!("{}", render(&label, &findings, color));
+    let state = cirven_core::state_dir(&cirven_core::Host::live(), MODULE.name, false);
+    match changes_since_last(&state, &info.package_base, &text) {
+        Some(added) if !added.is_empty() => {
+            println!("\nchanged since your last check:");
+            for l in added.iter().take(20) {
+                println!("  + {l}");
+            }
+        }
+        Some(_) => println!("\nunchanged since your last check."),
+        None => {}
+    }
+    Ok(exit_code(&findings))
+}
+
 /// Entry point for `cirven pkg`. Receives the arguments after the module name
 /// and returns the process exit code.
 pub fn run(args: &[String]) -> Result<u8> {
@@ -113,6 +172,9 @@ pub fn run(args: &[String]) -> Result<u8> {
     let color = std::io::stdout().is_terminal();
     match args.command {
         Command::Check { target } => {
+            if let Some(name) = target.strip_prefix("aur/") {
+                return check_aur(name, color);
+            }
             let path = PathBuf::from(&target);
             if !path.exists() {
                 return Err(Error::Other(format!("{target}: no such file or directory")));
