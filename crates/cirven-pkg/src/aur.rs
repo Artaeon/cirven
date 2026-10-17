@@ -48,7 +48,7 @@ fn agent() -> ureq::Agent {
         .build()
 }
 
-fn get(url: &str) -> Result<String, String> {
+pub(crate) fn get(url: &str) -> Result<String, String> {
     agent()
         .get(url)
         .call()

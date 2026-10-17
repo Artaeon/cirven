@@ -12,6 +12,7 @@
 //! logic in compiled upstream code needs `cirven-cage` as a second layer.
 
 pub mod aur;
+pub mod npm;
 pub mod pkgbuild;
 
 use std::io::IsTerminal;
@@ -36,9 +37,9 @@ struct Args {
 
 #[derive(Subcommand)]
 enum Command {
-    /// Check a package: aur/<name>, or a PKGBUILD file or directory
+    /// Check a package: aur/<name>, npm/<name>, or a PKGBUILD file or directory
     Check {
-        /// aur/<name>, or a path to a PKGBUILD or its directory
+        /// aur/<name>, npm/<name>, or a path to a PKGBUILD or its directory
         target: String,
     },
 }
@@ -174,6 +175,17 @@ pub fn run(args: &[String]) -> Result<u8> {
         Command::Check { target } => {
             if let Some(name) = target.strip_prefix("aur/") {
                 return check_aur(name, color);
+            }
+            if let Some(name) = target.strip_prefix("npm/") {
+                if !npm::valid_name(name) {
+                    return Err(Error::Other(format!(
+                        "{name}: not a valid npm package name"
+                    )));
+                }
+                let doc = npm::fetch(name).map_err(Error::Other)?;
+                let (label, findings) = npm::assess(name, &doc, std::time::SystemTime::now());
+                print!("{}", render(&label, &findings, color));
+                return Ok(exit_code(&findings));
             }
             let path = PathBuf::from(&target);
             if !path.exists() {
