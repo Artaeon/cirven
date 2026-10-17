@@ -1,6 +1,7 @@
 //! The checks. Each one reads the host and adds findings, passes or skips.
 
 pub mod network;
+pub mod secrets;
 pub mod ssh;
 
 use crate::host::Host;
@@ -25,4 +26,5 @@ impl Context {
 pub fn run_all(host: &Host, ctx: &Context, report: &mut Report) {
     network::check(host, ctx, report);
     ssh::check(host, ctx, report);
+    secrets::check(host, ctx, report);
 }
