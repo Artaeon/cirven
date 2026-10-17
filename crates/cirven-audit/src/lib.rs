@@ -30,6 +30,17 @@ use clap::Parser;
 pub use host::Host;
 pub use report::Report;
 
+#[cfg(test)]
+mod tests {
+    #[test]
+    fn sysctl_targets() {
+        assert_eq!(super::sysctl_target("kernel.yama.ptrace_scope"), Some(1));
+        assert_eq!(super::sysctl_target("dev.tty.ldisc_autoload"), Some(0));
+        assert_eq!(super::sysctl_target("fs.suid_dumpable"), Some(0));
+        assert_eq!(super::sysctl_target("vm.swappiness"), None);
+    }
+}
+
 pub const MODULE: Module = Module {
     name: "audit",
     summary: "find weaknesses, rank them by real attack paths",
@@ -51,6 +62,17 @@ struct Args {
     /// Home directory inside --root
     #[arg(long, hide = true, requires = "root", default_value = "home/user")]
     home: String,
+}
+
+/// The value harden should set for a sysctl audit reports on.
+pub fn sysctl_target(key: &str) -> Option<i64> {
+    if key == "fs.suid_dumpable" {
+        return Some(0);
+    }
+    checks::kernel::SYSCTLS
+        .iter()
+        .find(|s| s.key == key)
+        .map(|s| s.min)
 }
 
 /// Run every check against `host`. Reads only.
