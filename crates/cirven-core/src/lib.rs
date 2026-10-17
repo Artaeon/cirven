@@ -2,6 +2,8 @@
 
 use std::fmt;
 
+use serde::Serialize;
+
 /// Static description of a module, shown by `cirven modules`.
 #[derive(Debug)]
 pub struct Module {
@@ -35,7 +37,8 @@ impl fmt::Display for Status {
 }
 
 /// Ordered so that the highest severity of a run can drive the exit code.
-#[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Serialize)]
+#[serde(rename_all = "lowercase")]
 pub enum Severity {
     Info,
     Low,
@@ -57,16 +60,49 @@ impl fmt::Display for Severity {
 }
 
 /// One result of a check: what is wrong, where, and why it matters.
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, Serialize)]
 pub struct Finding {
-    /// Stable identifier, e.g. `ssh.password-auth`.
+    /// Stable identifier, e.g. `ssh.password-auth`. Other modules key on it.
     pub id: String,
     pub severity: Severity,
     pub title: String,
     /// File, socket or setting the finding refers to.
+    #[serde(skip_serializing_if = "Option::is_none")]
     pub location: Option<String>,
     /// The attack path this finding opens.
+    #[serde(skip_serializing_if = "Option::is_none")]
     pub path: Option<String>,
+    /// What to do about it, in one line.
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub remedy: Option<String>,
+}
+
+impl Finding {
+    pub fn new(id: impl Into<String>, severity: Severity, title: impl Into<String>) -> Self {
+        Finding {
+            id: id.into(),
+            severity,
+            title: title.into(),
+            location: None,
+            path: None,
+            remedy: None,
+        }
+    }
+
+    pub fn at(mut self, location: impl Into<String>) -> Self {
+        self.location = Some(location.into());
+        self
+    }
+
+    pub fn path(mut self, path: impl Into<String>) -> Self {
+        self.path = Some(path.into());
+        self
+    }
+
+    pub fn remedy(mut self, remedy: impl Into<String>) -> Self {
+        self.remedy = Some(remedy.into());
+        self
+    }
 }
 
 #[derive(Debug)]
