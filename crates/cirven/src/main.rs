@@ -17,6 +17,8 @@ enum Command {
     Modules,
     /// Find weaknesses, rank them by real attack paths
     Audit(Passthrough),
+    /// Fix findings: preview, apply, roll back
+    Harden(Passthrough),
 }
 
 /// Arguments handed to the module unparsed; each module owns its own options.
@@ -26,7 +28,7 @@ struct Passthrough {
     args: Vec<String>,
 }
 
-const MODULES: &[&Module] = &[&cirven_audit::MODULE];
+const MODULES: &[&Module] = &[&cirven_audit::MODULE, &cirven_harden::MODULE];
 
 fn main() -> ExitCode {
     let result: cirven_core::Result<()> = match Cli::parse().command {
@@ -35,6 +37,7 @@ fn main() -> ExitCode {
             Ok(())
         }
         Command::Audit(p) => cirven_audit::run(&p.args),
+        Command::Harden(p) => cirven_harden::run(&p.args),
     };
     match result {
         Ok(()) => ExitCode::SUCCESS,
