@@ -1,5 +1,6 @@
 //! The checks. Each one reads the host and adds findings, passes or skips.
 
+pub mod accounts;
 pub mod boot;
 pub mod disk;
 pub mod kernel;
@@ -33,4 +34,5 @@ pub fn run_all(host: &Host, ctx: &Context, report: &mut Report) {
     disk::check(host, ctx, report);
     boot::check(host, ctx, report);
     kernel::check(host, ctx, report);
+    accounts::check(host, ctx, report);
 }
