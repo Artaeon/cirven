@@ -12,26 +12,34 @@
 <body>
 <p><a href="/">cirven systems</a> / modules / lure</p>
 <h1>cirven lure</h1>
-<p>Infostealers grab whatever looks valuable. lure gives them something that looks valuable and is worth nothing except the alarm it raises. You never touch the decoys, so any access is a signal with almost no false positives.</p>
+<p>Infostealers grab whatever looks valuable. lure gives them something that looks valuable and is worth nothing except the alarm it raises. You never open the decoys, so any access is a signal with almost no false positives.</p>
 
 <h2>usage</h2>
-<pre><span class="p">$</span> cirven lure plant
-~/.aws/credentials.bak          fake aws key pair
-~/.ssh/id_ed25519_old           fake private key
-~/projects/.env.production      fake db url + api tokens
-~/.config/chromium-backup/      fake login store
+<pre><span class="p">$</span> cirven lure            <span class="d"># the plan; changes nothing</span>
+free     ~/.aws/credentials.bak                       aws access key pair
+free     ~/.ssh/id_ed25519_old                        ssh private key
+free     ~/backup/.env.production                     production database url and api keys
+free     ~/.config/solana/id-backup.json              crypto wallet keypair
+free     ~/.config/chromium-backup/Default/Login Data browser password store
+<span class="p">$</span> cirven lure plant
 <span class="p">$</span> cirven lure status
-<span class="w">[tripped]</span> ~/.ssh/id_ed25519_old read by pid 4410 /tmp/.u/upd</pre>
+<span class="w">[TRIPPED]</span> ~/.aws/credentials.bak     read since planting
+<span class="p">$</span> cirven lure watch --notify
+<span class="w">[TRIPPED]</span> ~/.ssh/id_ed25519_old read · 4410 /tmp/.u/upd</pre>
 
-<h2>two tripwires</h2>
+<h2>tripwires</h2>
 <ul>
-<li><b>read</b>: fanotify reports which process opened a decoy. local, offline, instant.</li>
-<li><b>use</b>: decoy tokens and URLs call home when an attacker tries them elsewhere, so you learn about the leak even if the read was missed. needs a callback endpoint: self-hosted, or cirven relay.</li>
+<li><b>status</b>: access times. on a relatime mount the first read moves atime past mtime. offline, no daemon, catches reads that happened while you were away</li>
+<li><b>watch</b>: inotify reports each open as it happens, and the processes holding the decoy right then are named</li>
+<li class="d">planned, <b>use</b>: decoy tokens that call home when tried elsewhere. needs a callback endpoint: self-hosted, or cirven relay</li>
 </ul>
 
-<h2>threat model</h2>
-<p>Stops: unnoticed credential theft by malware, poisoned packages, and curious agents. Does not stop: an attacker who reads only real secrets. Decoys sit next to them on purpose, and real secrets belong in a vault (see <a href="/modules/key.html">key</a>).</p>
+<h2>safety</h2>
+<p>Existing files are never overwritten: decoys are created with O_EXCL, so not even a symlink race can redirect them. Fresh random values, correct formats, no marker a stealer could filter on: cirven knows its decoys by the hash it recorded. <code>remove</code> deletes only decoys whose hash still matches, and the directories it created for them.</p>
 
-<footer><hr>status: <span class="w">planned</span> &middot; <a href="/">back</a></footer>
+<h2>threat model</h2>
+<p>Stops: unnoticed credential theft by infostealers, poisoned packages and hijacked agents. Does not stop: an attacker who reads only real secrets. Backup and indexing tools also read files: exclude the decoys from them, or they will trip.</p>
+
+<footer><hr>status: <span class="ok">experimental</span> &middot; <a href="/">back</a></footer>
 </body>
 </html>
