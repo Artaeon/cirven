@@ -2,6 +2,7 @@
 
 pub mod boot;
 pub mod disk;
+pub mod kernel;
 pub mod network;
 pub mod secrets;
 pub mod ssh;
@@ -31,4 +32,5 @@ pub fn run_all(host: &Host, ctx: &Context, report: &mut Report) {
     secrets::check(host, ctx, report);
     disk::check(host, ctx, report);
     boot::check(host, ctx, report);
+    kernel::check(host, ctx, report);
 }
