@@ -10,6 +10,7 @@ homepage.workspace = true
 
 [dependencies]
 cirven-core.workspace = true
+cirven-audit.workspace = true
 clap.workspace = true
 
 [lints]

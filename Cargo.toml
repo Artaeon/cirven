@@ -12,6 +12,7 @@ homepage = "https://cirven.dev"
 
 [workspace.dependencies]
 cirven-core = { path = "crates/cirven-core" }
+cirven-audit = { path = "crates/cirven-audit" }
 clap = { version = "4.5", features = ["derive"] }
 
 [workspace.lints.rust]

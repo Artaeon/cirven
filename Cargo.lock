@@ -56,8 +56,16 @@ dependencies = [
 name = "cirven"
 version = "0.0.0"
 dependencies = [
+ "cirven-audit",
  "cirven-core",
  "clap",
+]
+
+[[package]]
+name = "cirven-audit"
+version = "0.0.0"
+dependencies = [
+ "cirven-core",
 ]
 
 [[package]]
