@@ -15,10 +15,21 @@ use sha2::{Digest, Sha256};
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 #[serde(tag = "kind", rename_all = "lowercase")]
 pub enum Print {
-    File { sha256: String, mode: u32, uid: u32 },
-    Link { target: String },
+    File {
+        sha256: String,
+        mode: u32,
+        uid: u32,
+    },
+    Link {
+        target: String,
+    },
     /// Not readable by us: compare what the inode tells.
-    Opaque { size: u64, mtime: i64, mode: u32, uid: u32 },
+    Opaque {
+        size: u64,
+        mtime: i64,
+        mode: u32,
+        uid: u32,
+    },
 }
 
 #[derive(Debug, Default, Serialize, Deserialize)]
@@ -32,7 +43,9 @@ pub fn fingerprint(path: &Path) -> Option<Print> {
     let meta = fs::symlink_metadata(path).ok()?;
     if meta.file_type().is_symlink() {
         let target = fs::read_link(path).ok()?;
-        return Some(Print::Link { target: target.display().to_string() });
+        return Some(Print::Link {
+            target: target.display().to_string(),
+        });
     }
     let mode = meta.permissions().mode() & 0o7777;
     match fs::read(path) {
@@ -41,7 +54,12 @@ pub fn fingerprint(path: &Path) -> Option<Print> {
             mode,
             uid: meta.uid(),
         }),
-        _ => Some(Print::Opaque { size: meta.len(), mtime: meta.mtime(), mode, uid: meta.uid() }),
+        _ => Some(Print::Opaque {
+            size: meta.len(),
+            mtime: meta.mtime(),
+            mode,
+            uid: meta.uid(),
+        }),
     }
 }
 
@@ -97,7 +115,10 @@ pub fn save(path: &Path, baseline: &Baseline) -> std::io::Result<()> {
     fs::create_dir_all(dir)?;
     fs::set_permissions(dir, fs::Permissions::from_mode(0o700))?;
     let tmp = path.with_extension("tmp");
-    fs::write(&tmp, serde_json::to_string_pretty(baseline).map_err(std::io::Error::other)?)?;
+    fs::write(
+        &tmp,
+        serde_json::to_string_pretty(baseline).map_err(std::io::Error::other)?,
+    )?;
     fs::set_permissions(&tmp, fs::Permissions::from_mode(0o600))?;
     fs::rename(tmp, path)
 }
@@ -123,9 +144,17 @@ mod tests {
         fs::write(host.home(".zshrc"), "setopt x\n").unwrap();
         let (before, _) = take(&host, "t0".into());
 
-        fs::write(host.home(".bashrc"), "alias ll='ls -l'\nexport LD_PRELOAD=/tmp/x.so\n").unwrap();
+        fs::write(
+            host.home(".bashrc"),
+            "alias ll='ls -l'\nexport LD_PRELOAD=/tmp/x.so\n",
+        )
+        .unwrap();
         fs::remove_file(host.home(".zshrc")).unwrap();
-        fs::write(host.home(".config/autostart/upd.desktop"), "[Desktop Entry]\nExec=/tmp/upd\n").unwrap();
+        fs::write(
+            host.home(".config/autostart/upd.desktop"),
+            "[Desktop Entry]\nExec=/tmp/upd\n",
+        )
+        .unwrap();
         let (after, reasons) = take(&host, "t1".into());
 
         assert_eq!(
@@ -147,7 +176,11 @@ mod tests {
         fs::create_dir_all(host.home(".ssh")).unwrap();
         fs::write(host.home(".ssh/authorized_keys"), "ssh-ed25519 AAAA me\n").unwrap();
         let (before, _) = take(&host, "t0".into());
-        fs::set_permissions(host.home(".ssh/authorized_keys"), fs::Permissions::from_mode(0o666)).unwrap();
+        fs::set_permissions(
+            host.home(".ssh/authorized_keys"),
+            fs::Permissions::from_mode(0o666),
+        )
+        .unwrap();
         let (after, _) = take(&host, "t1".into());
         assert_eq!(diff(&before, &after).len(), 1);
     }
@@ -155,12 +188,19 @@ mod tests {
     #[test]
     fn save_and_load_round_trip() {
         let dir = tempfile::tempdir().unwrap();
-        let mut b = Baseline { taken: "t".into(), ..Baseline::default() };
-        b.points.insert("~/.bashrc".into(), Print::Link { target: "x".into() });
+        let mut b = Baseline {
+            taken: "t".into(),
+            ..Baseline::default()
+        };
+        b.points
+            .insert("~/.bashrc".into(), Print::Link { target: "x".into() });
         let path = dir.path().join("state/baseline.json");
         save(&path, &b).unwrap();
         let loaded = load(&path).unwrap();
         assert_eq!(loaded.points, b.points);
-        assert_eq!(fs::metadata(&path).unwrap().permissions().mode() & 0o777, 0o600);
+        assert_eq!(
+            fs::metadata(&path).unwrap().permissions().mode() & 0o777,
+            0o600
+        );
     }
 }
