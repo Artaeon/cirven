@@ -23,6 +23,8 @@ enum Command {
     Watch(Passthrough),
     /// Decoy credentials that alarm when touched
     Lure(Passthrough),
+    /// Inspect AUR/npm/pip packages before install
+    Pkg(Passthrough),
 }
 
 /// Arguments handed to the module unparsed; each module owns its own options.
@@ -37,6 +39,7 @@ const MODULES: &[&Module] = &[
     &cirven_harden::MODULE,
     &cirven_watch::MODULE,
     &cirven_lure::MODULE,
+    &cirven_pkg::MODULE,
 ];
 
 fn main() -> ExitCode {
@@ -49,6 +52,7 @@ fn main() -> ExitCode {
         Command::Harden(p) => cirven_harden::run(&p.args),
         Command::Watch(p) => cirven_watch::run(&p.args),
         Command::Lure(p) => cirven_lure::run(&p.args),
+        Command::Pkg(p) => cirven_pkg::run(&p.args),
     };
     match result {
         Ok(()) => ExitCode::SUCCESS,
