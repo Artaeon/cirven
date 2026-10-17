@@ -15,8 +15,8 @@ size:
 	  printf '%-28s %6s B raw  %6s B gzip\n' $${f#$(SITE)/} $$raw $$gz; \
 	done
 
-# no scripts, no inline styles, no third-party requests
+# no scripts, no inline styles, no third-party resources (plain links are fine)
 check:
-	@! grep -rniP '<script|\sstyle=|\son[a-z]+=|(src|href)="https?://(?!www\.apache\.org)' --include='*.html' $(SITE) \
+	@! grep -rniP '<script|\sstyle=|\son[a-z]+=|\ssrc="https?://|<link[^>]+href="https?://' --include='*.html' $(SITE) \
 	  || (echo "check failed" && exit 1)
 	@echo "check ok"
