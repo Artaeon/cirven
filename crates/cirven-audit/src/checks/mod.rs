@@ -2,6 +2,7 @@
 
 pub mod accounts;
 pub mod boot;
+pub mod desktop;
 pub mod disk;
 pub mod kernel;
 pub mod network;
@@ -35,4 +36,5 @@ pub fn run_all(host: &Host, ctx: &Context, report: &mut Report) {
     boot::check(host, ctx, report);
     kernel::check(host, ctx, report);
     accounts::check(host, ctx, report);
+    desktop::check(host, ctx, report);
 }
