@@ -21,6 +21,8 @@ enum Command {
     Harden(Passthrough),
     /// Detect persistence: new units, autostarts, hooks
     Watch(Passthrough),
+    /// Decoy credentials that alarm when touched
+    Lure(Passthrough),
 }
 
 /// Arguments handed to the module unparsed; each module owns its own options.
@@ -34,6 +36,7 @@ const MODULES: &[&Module] = &[
     &cirven_audit::MODULE,
     &cirven_harden::MODULE,
     &cirven_watch::MODULE,
+    &cirven_lure::MODULE,
 ];
 
 fn main() -> ExitCode {
@@ -45,6 +48,7 @@ fn main() -> ExitCode {
         Command::Audit(p) => cirven_audit::run(&p.args),
         Command::Harden(p) => cirven_harden::run(&p.args),
         Command::Watch(p) => cirven_watch::run(&p.args),
+        Command::Lure(p) => cirven_lure::run(&p.args),
     };
     match result {
         Ok(()) => ExitCode::SUCCESS,
