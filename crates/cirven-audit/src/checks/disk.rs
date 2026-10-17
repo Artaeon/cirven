@@ -5,8 +5,8 @@ use std::fs;
 use cirven_core::{Finding, Severity};
 
 use super::Context;
-use crate::host::Host;
 use crate::report::Report;
+use cirven_core::Host;
 
 /// Device-mapper name for a mount source, if it is a dm device.
 fn dm_node(host: &Host, source: &str) -> Option<String> {

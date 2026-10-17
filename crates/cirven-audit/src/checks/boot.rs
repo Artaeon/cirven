@@ -3,8 +3,8 @@
 use cirven_core::{Finding, Severity};
 
 use super::Context;
-use crate::host::Host;
 use crate::report::Report;
+use cirven_core::Host;
 
 const EFI_GLOBAL: &str = "8be4df61-93ca-11d2-aa0d-00e098032b8c";
 

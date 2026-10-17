@@ -5,8 +5,8 @@ use std::fs;
 use cirven_core::{Finding, Severity};
 
 use super::Context;
-use crate::host::Host;
 use crate::report::Report;
+use cirven_core::Host;
 
 fn extra_root_accounts(host: &Host, report: &mut Report) {
     let Some(passwd) = host.read_sys("/etc/passwd") else {

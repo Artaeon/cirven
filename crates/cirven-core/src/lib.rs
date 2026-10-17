@@ -1,8 +1,12 @@
 //! Shared types for all cirven modules: module metadata, findings, errors.
 
+pub mod host;
+
 use std::fmt;
 
 use serde::Serialize;
+
+pub use host::Host;
 
 /// Static description of a module, shown by `cirven modules`.
 #[derive(Debug)]

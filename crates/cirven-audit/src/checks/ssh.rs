@@ -8,8 +8,8 @@ use base64::Engine as _;
 use cirven_core::{Finding, Severity};
 
 use super::Context;
-use crate::host::Host;
 use crate::report::Report;
+use cirven_core::Host;
 
 const DROPIN: &str = "/etc/ssh/sshd_config.d/";
 

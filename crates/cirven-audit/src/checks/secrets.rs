@@ -9,8 +9,8 @@ use cirven_core::{Finding, Severity};
 use regex::Regex;
 
 use super::Context;
-use crate::host::Host;
 use crate::report::Report;
+use cirven_core::Host;
 
 /// Token formats with a recognisable prefix: near-zero false positives.
 static TOKENS: LazyLock<Vec<(&str, Regex)>> = LazyLock::new(|| {

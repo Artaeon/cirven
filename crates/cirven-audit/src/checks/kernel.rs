@@ -3,8 +3,8 @@
 use cirven_core::{Finding, Severity};
 
 use super::Context;
-use crate::host::Host;
 use crate::report::Report;
+use cirven_core::Host;
 
 pub struct Sysctl {
     pub key: &'static str,

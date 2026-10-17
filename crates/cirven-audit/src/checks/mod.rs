@@ -10,8 +10,8 @@ pub mod packages;
 pub mod secrets;
 pub mod ssh;
 
-use crate::host::Host;
 use crate::report::Report;
+use cirven_core::Host;
 
 /// Facts several checks depend on, gathered once per run.
 #[derive(Default)]

@@ -6,8 +6,8 @@ use std::time::{Duration, SystemTime};
 use cirven_core::{Finding, Severity};
 
 use super::Context;
-use crate::host::Host;
 use crate::report::Report;
+use cirven_core::Host;
 
 const STALE_DAYS: u64 = 7;
 

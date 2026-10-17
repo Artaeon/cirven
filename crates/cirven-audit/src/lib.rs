@@ -18,7 +18,6 @@
 //! detect an attacker already on the machine; see `cirven-watch`.
 
 mod checks;
-pub mod host;
 pub mod report;
 
 use std::io::IsTerminal;
@@ -27,7 +26,7 @@ use std::path::PathBuf;
 use cirven_core::{Error, Module, Result, Status};
 use clap::Parser;
 
-pub use host::Host;
+pub use cirven_core::Host;
 pub use report::Report;
 
 #[cfg(test)]

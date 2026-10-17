@@ -7,8 +7,8 @@ use std::net::{IpAddr, Ipv4Addr, Ipv6Addr};
 use cirven_core::{Finding, Severity};
 
 use super::Context;
-use crate::host::Host;
 use crate::report::Report;
+use cirven_core::Host;
 
 #[derive(Debug, Clone)]
 pub struct Listener {

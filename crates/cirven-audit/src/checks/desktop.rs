@@ -5,8 +5,8 @@ use std::fs;
 use cirven_core::{Finding, Severity};
 
 use super::Context;
-use crate::host::Host;
 use crate::report::Report;
+use cirven_core::Host;
 
 fn home_perms(host: &Host, report: &mut Report) {
     let home = host.home("");
