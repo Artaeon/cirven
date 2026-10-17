@@ -9,6 +9,7 @@ repository.workspace = true
 homepage.workspace = true
 
 [dependencies]
+base64.workspace = true
 cirven-core.workspace = true
 clap.workspace = true
 serde.workspace = true
