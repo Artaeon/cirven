@@ -5,35 +5,44 @@
 <meta name="viewport" content="width=device-width,initial-scale=1">
 <meta http-equiv="Content-Security-Policy" content="default-src 'none'; style-src 'self'; img-src 'self'; base-uri 'none'; form-action 'none'">
 <title>cirven pkg</title>
-<meta name="description" content="cirven pkg: inspect AUR, npm and pip packages for malicious behavior before they install.">
+<meta name="description" content="cirven pkg: inspect AUR and npm packages for malicious behavior before they install.">
 <link rel="icon" href="/favicon.svg">
 <link rel="stylesheet" href="/style.css">
 </head>
 <body>
 <p><a href="/">cirven systems</a> / modules / pkg</p>
 <h1>cirven pkg</h1>
-<p>An AUR build script or an npm postinstall runs with your rights before you ever use the package. Malicious AUR packages shipping remote-access trojans have been found in the wild. pkg reads what will run before it runs.</p>
+<p>An AUR build script or an npm postinstall runs with your rights before you ever use the package. Malicious AUR packages shipping remote-access trojans have been found in the wild. pkg reads what will run before it runs. Static analysis only: nothing from the package is ever executed.</p>
 
 <h2>usage</h2>
 <pre><span class="p">$</span> cirven pkg check aur/some-browser-bin
-<span class="w">[high]</span> source pulls from a personal github repo, not upstream
-<span class="w">[high]</span> install hook runs: curl -s https://... | python
-<span class="w">[med ]</span> maintainer account 3 days old, adopted orphan package
-<span class="d">diff vs last version: +1 source, +1 install hook</span>
+cirven pkg · aur/some-browser-bin 1.0-1 · maintainer someone · 0 votes
+
+<span class="w">[high]</span> source comes from github.com/someone, upstream is github.com/mozilla
+<span class="w">[high]</span> downloads during build or install, bypassing checksums
+       at   PKGBUILD:11
+<span class="w">[med ]</span> package first submitted 3 days ago
+
 verdict: <span class="w">do not install</span>
-<span class="p">$</span> cirven pkg wrap paru   <span class="d"># check every install automatically</span></pre>
+<span class="p">$</span> cirven pkg check npm/crossenv
+<span class="w">[high]</span> name is one typo away from "cross-env"
+<span class="p">$</span> cirven pkg check ./PKGBUILD
+<span class="p">$</span> eval "$(cirven pkg wrap paru)"   <span class="d"># every paru -S is checked first</span></pre>
 
 <h2>signals</h2>
 <ul>
-<li>sources: domain changes, non-upstream hosts, missing or skipped checksums</li>
-<li>scripts: network fetches, pipes to shells, base64 and eval, writes outside the package</li>
-<li>history: diff against the previous version; new maintainer; recent adoption</li>
-<li>npm/pip: install-time scripts, typosquat distance to popular names, binary blobs</li>
+<li>sources: bare IPs, paste and file-drop hosts, plain http, forks instead of upstream, unpinned VCS</li>
+<li>checksums: SKIP on downloaded files, md5 or sha1 only. per architecture, signatures excepted</li>
+<li>scripts: downloads, pipes into interpreters, base64 payloads, eval, sudo, setuid, reverse shells, writes to the live system, services enabled from install scripts</li>
+<li>AUR: package age, orphaned packages, fresh changes to little-used packages, lines changed since your last check</li>
+<li>npm: install-time scripts and what they run, package age, names one typo from popular packages</li>
 </ul>
+<p>Exit code: 0 no red flags, 1 review, 2 do not install, 3 not in the AUR. The wrapper blocks on 2, asks on 1, and lets repo packages, searches and upgrades through.</p>
+<p class="d">planned: pip, binary blob detection.</p>
 
 <h2>threat model</h2>
 <p>Stops: the common, lazy supply-chain attacks, which are most of them. Does not stop: a patient attacker hiding logic in compiled upstream code. Pair with <a href="/modules/cage.html">cage</a> to build untrusted packages without network or home access.</p>
 
-<footer><hr>status: <span class="w">planned</span> &middot; <a href="/">back</a></footer>
+<footer><hr>status: <span class="ok">experimental</span> &middot; <a href="/">back</a></footer>
 </body>
 </html>
