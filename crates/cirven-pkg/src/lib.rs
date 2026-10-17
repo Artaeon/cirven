@@ -42,6 +42,47 @@ enum Command {
         /// aur/<name>, npm/<name>, or a path to a PKGBUILD or its directory
         target: String,
     },
+    /// Print a shell function that checks AUR packages before an AUR helper
+    /// installs them. Load it with: eval "$(cirven pkg wrap paru)"
+    Wrap {
+        /// The AUR helper to wrap
+        #[arg(value_parser = ["paru", "yay"])]
+        helper: String,
+    },
+}
+
+/// Exit code for "not an AUR package": the wrapper lets repo packages through.
+pub const NOT_IN_AUR: u8 = 3;
+
+/// A bash/zsh function shadowing the helper. Blocks on "do not install",
+/// asks on "review", and passes repo packages and non-install commands through.
+pub fn wrapper(helper: &str) -> String {
+    format!(
+        r#"# cirven: check AUR packages before {helper} installs them
+{helper}() {{
+  local arg rc install=0
+  for arg in "$@"; do
+    case "$arg" in
+      -S*[sicglp]*) ;;
+      -S*|--sync) install=1 ;;
+    esac
+  done
+  if [ "$install" = 1 ]; then
+    for arg in "$@"; do
+      case "$arg" in -*) continue ;; esac
+      cirven pkg check "aur/$arg"; rc=$?
+      case "$rc" in
+        0|{NOT_IN_AUR}) ;;
+        1) printf 'cirven: install %s anyway? [y/N] ' "$arg"; read -r rc; [ "$rc" = y ] || return 1 ;;
+        *) printf 'cirven: blocked %s. to override: command {helper} %s
+' "$arg" "$*"; return 1 ;;
+      esac
+    done
+  fi
+  command {helper} "$@"
+}}
+"#
+    )
 }
 
 /// 0 nothing above low, 1 medium, 2 high: do not install.
@@ -128,7 +169,14 @@ fn check_aur(name: &str, color: bool) -> Result<u8> {
     if !aur::valid_name(name) {
         return Err(Error::Other(format!("{name}: not a valid package name")));
     }
-    let info = aur::info(name).map_err(Error::Other)?;
+    let info = match aur::info(name) {
+        Ok(info) => info,
+        Err(e) if e.ends_with("not found in the AUR") => {
+            eprintln!("cirven pkg: {name} is not in the AUR (a repo package?)");
+            return Ok(NOT_IN_AUR);
+        }
+        Err(e) => return Err(Error::Other(e)),
+    };
     let text = aur::file(&info.package_base, "PKGBUILD").map_err(Error::Other)?;
     let install = pkgbuild::parse(&text)
         .vars
@@ -172,6 +220,10 @@ pub fn run(args: &[String]) -> Result<u8> {
     };
     let color = std::io::stdout().is_terminal();
     match args.command {
+        Command::Wrap { helper } => {
+            print!("{}", wrapper(&helper));
+            Ok(0)
+        }
         Command::Check { target } => {
             if let Some(name) = target.strip_prefix("aur/") {
                 return check_aur(name, color);
@@ -199,5 +251,45 @@ pub fn run(args: &[String]) -> Result<u8> {
             print!("{}", render(&target, &findings, color));
             Ok(exit_code(&findings))
         }
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use std::process::Command;
+
+    /// Run the wrapper in bash with stub `cirven` and `paru` commands.
+    fn run(cirven_rc: u8, args: &str) -> String {
+        let script = format!(
+            "cirven() {{ echo \"check $*\"; return {cirven_rc}; }}\nparu_real() {{ :; }}\n{}\nhash -p /bin/echo paru 2>/dev/null\nparu {args} </dev/null; echo \"rc=$?\"",
+            wrapper("paru").replace("command paru", "echo ran paru")
+        );
+        let out = Command::new("bash").arg("-c").arg(script).output().unwrap();
+        String::from_utf8(out.stdout).unwrap()
+    }
+
+    #[test]
+    fn wrapper_gates_installs_only() {
+        assert_eq!(
+            run(0, "-S foo"),
+            "check pkg check aur/foo\nran paru -S foo\nrc=0\n"
+        );
+        assert_eq!(
+            run(NOT_IN_AUR, "-S firefox"),
+            "check pkg check aur/firefox\nran paru -S firefox\nrc=0\n"
+        );
+        assert!(run(2, "-S evil").ends_with("rc=1\n"));
+        assert!(run(1, "-S maybe").contains("anyway? [y/N]"));
+        assert_eq!(
+            run(2, "-Syu"),
+            "ran paru -Syu\nrc=0\n",
+            "upgrades are not gated"
+        );
+        assert_eq!(
+            run(2, "-Ss term"),
+            "ran paru -Ss term\nrc=0\n",
+            "searches are not gated"
+        );
     }
 }
