@@ -54,6 +54,18 @@ enum Command {
     Check,
     /// Accept the current state as the new baseline, after reviewing changes
     Accept,
+    /// Keep checking and report every change as it happens
+    Follow {
+        /// Seconds between checks
+        #[arg(long, default_value_t = 10, value_parser = clap::value_parser!(u64).range(2..))]
+        interval: u64,
+        /// Also send a desktop notification for each change
+        #[arg(long)]
+        notify: bool,
+        /// Stop after this many checks (for testing)
+        #[arg(long, hide = true)]
+        ticks: Option<u64>,
+    },
 }
 
 fn timestamp() -> String {
@@ -151,6 +163,66 @@ fn report(
     alerts
 }
 
+fn notify(title: &str, body: &str) {
+    // Best effort: no notification daemon is not an error.
+    let _ = std::process::Command::new("notify-send")
+        .args(["--urgency=critical", "--app-name=cirven", title, body])
+        .stdout(std::process::Stdio::null())
+        .stderr(std::process::Stdio::null())
+        .status();
+}
+
+/// Report drift from the baseline once, then every change since the last check.
+fn follow(
+    host: &Host,
+    path: &Path,
+    interval: u64,
+    desktop: bool,
+    ticks: Option<u64>,
+) -> Result<u8> {
+    let Some(base) = baseline::load(path) else {
+        return Err(Error::Other(format!(
+            "no baseline at {}; run: cirven watch baseline",
+            path.display()
+        )));
+    };
+    let (mut seen, reasons) = baseline::take(host, timestamp());
+    println!(
+        "following {} points every {interval}s · ctrl-c to stop",
+        seen.points.len()
+    );
+    let drift = baseline::diff(&base, &seen);
+    if !drift.is_empty() {
+        println!("\nalready changed since the baseline:");
+        report(host, &drift, &reasons);
+    }
+    let mut n = 0;
+    while ticks.is_none_or(|t| n < t) {
+        std::thread::sleep(std::time::Duration::from_secs(interval));
+        n += 1;
+        let (now, reasons) = baseline::take(host, timestamp());
+        let changes = baseline::diff(&seen, &now);
+        if !changes.is_empty() {
+            println!("\n-- {} --", timestamp());
+            let alerts = report(host, &changes, &reasons);
+            if desktop {
+                for (change, shown) in &changes {
+                    let what = format!("{change:?}").to_lowercase();
+                    let why = reasons.get(shown).copied().unwrap_or("persistence point");
+                    let title = if alerts > 0 {
+                        "cirven watch: suspicious change"
+                    } else {
+                        "cirven watch"
+                    };
+                    notify(title, &format!("{what}: {shown}\n{why}"));
+                }
+            }
+        }
+        seen = now;
+    }
+    Ok(0)
+}
+
 /// Entry point for `cirven watch`. Receives the arguments after the module name
 /// and returns the process exit code.
 pub fn run(args: &[String]) -> Result<u8> {
@@ -166,5 +238,10 @@ pub fn run(args: &[String]) -> Result<u8> {
         Command::Baseline => record(&host, &path, "recorded"),
         Command::Accept => record(&host, &path, "accepted"),
         Command::Check => check(&host, &path),
+        Command::Follow {
+            interval,
+            notify,
+            ticks,
+        } => follow(&host, &path, interval, notify, ticks),
     }
 }

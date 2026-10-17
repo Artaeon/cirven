@@ -45,6 +45,30 @@ fn catches_planted_autostart() {
 }
 
 #[test]
+fn follow_reports_drift_and_stops_after_ticks() {
+    let dir = tempfile::tempdir().unwrap();
+    let root = dir.path();
+    fs::create_dir_all(root.join("home/user")).unwrap();
+    assert!(cirven(root, &["watch", "baseline"]).status.success());
+    fs::write(
+        root.join("home/user/.zshenv"),
+        "export LD_PRELOAD=/tmp/x.so\n",
+    )
+    .unwrap();
+    let out = cirven(
+        root,
+        &["watch", "follow", "--interval", "2", "--ticks", "1"],
+    );
+    let text = String::from_utf8(out.stdout).unwrap();
+    assert!(out.status.success(), "{text}");
+    assert!(
+        text.contains("already changed since the baseline"),
+        "{text}"
+    );
+    assert!(text.contains("[ALERT  ] ~/.zshenv"), "{text}");
+}
+
+#[test]
 fn check_without_baseline_explains_what_to_do() {
     let dir = tempfile::tempdir().unwrap();
     let out = cirven(dir.path(), &["watch"]);
