@@ -49,10 +49,10 @@ const MODULES: &[&Module] = &[
 ];
 
 fn main() -> ExitCode {
-    let result: cirven_core::Result<()> = match Cli::parse().command {
+    let result: cirven_core::Result<u8> = match Cli::parse().command {
         Command::Modules => {
             list();
-            Ok(())
+            Ok(0)
         }
         Command::Audit(p) => cirven_audit::run(&p.args),
         Command::Harden(p) => cirven_harden::run(&p.args),
@@ -63,7 +63,8 @@ fn main() -> ExitCode {
         Command::Key(p) => cirven_key::run(&p.args),
     };
     match result {
-        Ok(()) => ExitCode::SUCCESS,
+        Ok(code) => ExitCode::from(code),
+        Err(e @ cirven_core::Error::Usage) => ExitCode::from(e.exit_code()),
         Err(e) => {
             eprintln!("cirven {e}");
             ExitCode::from(e.exit_code())

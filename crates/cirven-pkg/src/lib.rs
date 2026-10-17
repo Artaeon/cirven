@@ -19,8 +19,9 @@ pub const MODULE: Module = Module {
     status: Status::Planned,
 };
 
-/// Entry point for `cirven pkg`. Receives the arguments after the module name.
-pub fn run(_args: &[String]) -> Result<()> {
+/// Entry point for `cirven pkg`. Receives the arguments after the module name
+/// and returns the process exit code.
+pub fn run(_args: &[String]) -> Result<u8> {
     Err(Error::NotImplemented(&MODULE))
 }
 

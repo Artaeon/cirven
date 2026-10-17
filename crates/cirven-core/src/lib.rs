@@ -108,14 +108,19 @@ impl Finding {
 #[derive(Debug)]
 pub enum Error {
     NotImplemented(&'static Module),
+    /// Bad arguments; clap has already printed the details.
+    Usage,
     Io(std::io::Error),
+    Other(String),
 }
 
 impl Error {
     pub fn exit_code(&self) -> u8 {
         match self {
             Error::NotImplemented(_) => 64,
+            Error::Usage => 2,
             Error::Io(_) => 74,
+            Error::Other(_) => 1,
         }
     }
 }
@@ -130,7 +135,9 @@ impl fmt::Display for Error {
                 m.status,
                 m.url()
             ),
+            Error::Usage => write!(f, "invalid arguments"),
             Error::Io(e) => write!(f, "io: {e}"),
+            Error::Other(msg) => f.write_str(msg),
         }
     }
 }
@@ -144,6 +151,23 @@ impl From<std::io::Error> for Error {
 }
 
 pub type Result<T> = std::result::Result<T, Error>;
+
+/// Parse a module's own arguments. `Ok(None)` means help or version was
+/// printed and the module should exit successfully without doing anything.
+pub fn parse_args<T: clap::Parser>(module: &str, args: &[String]) -> Result<Option<T>> {
+    let argv = std::iter::once(format!("cirven {module}")).chain(args.iter().cloned());
+    match T::try_parse_from(argv) {
+        Ok(parsed) => Ok(Some(parsed)),
+        Err(e) => {
+            let _ = e.print();
+            if e.use_stderr() {
+                Err(Error::Usage)
+            } else {
+                Ok(None)
+            }
+        }
+    }
+}
 
 #[cfg(test)]
 mod tests {

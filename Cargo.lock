@@ -85,6 +85,7 @@ dependencies = [
 name = "cirven-core"
 version = "0.0.0"
 dependencies = [
+ "clap",
  "serde",
 ]
 
