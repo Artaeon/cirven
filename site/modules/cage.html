@@ -1,0 +1,37 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<meta http-equiv="Content-Security-Policy" content="default-src 'none'; style-src 'self'; img-src 'self'; base-uri 'none'; form-action 'none'">
+<title>cirven cage</title>
+<meta name="description" content="cirven cage: confine tools and AI coding agents to the files and network they actually need.">
+<link rel="icon" href="/favicon.svg">
+<link rel="stylesheet" href="/style.css">
+</head>
+<body>
+<p><a href="/">cirven systems</a> / modules / cage</p>
+<h1>cirven cage</h1>
+<p>Every program you run can read your whole home directory: your ssh keys, your browser profile, your cloud credentials. AI coding agents make this worse. They run commands, and a prompt injection hidden in a README is enough to steer them. cage gives a process the project it works on and nothing else.</p>
+
+<h2>usage</h2>
+<pre><span class="p">$</span> cirven cage --profile agent -- claude
+fs:   rw ./  ro /usr  <span class="d">hidden: ~/.ssh ~/.aws ~/.gnupg ~/.config/chromium</span>
+net:  allow api.anthropic.com github.com registry.npmjs.org
+<span class="p">$</span> cirven cage --net none -- makepkg</pre>
+
+<h2>how</h2>
+<ul>
+<li>landlock for filesystem rules, no root required</li>
+<li>user and mount namespaces (bubblewrap-style) to hide paths entirely</li>
+<li>seccomp to drop syscalls a profile never needs</li>
+<li>egress allowlist per profile; every denied connection is logged</li>
+<li>profiles as plain text files you can read and diff</li>
+</ul>
+
+<h2>threat model</h2>
+<p>Stops: a confused or hijacked tool reading or sending what it should not. Does not stop: kernel exploits that escape the sandbox, or data you explicitly put inside the cage.</p>
+
+<footer><hr>status: <span class="w">planned</span> &middot; <a href="/">back</a></footer>
+</body>
+</html>
