@@ -92,6 +92,8 @@ dependencies = [
  "cirven-pkg",
  "cirven-watch",
  "clap",
+ "serde_json",
+ "tempfile",
 ]
 
 [[package]]
