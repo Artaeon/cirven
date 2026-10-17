@@ -1,0 +1,47 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<meta http-equiv="Content-Security-Policy" content="default-src 'none'; style-src 'self'; img-src 'self'; base-uri 'none'; form-action 'none'">
+<title>cirven audit</title>
+<meta name="description" content="cirven audit: find weaknesses on a Linux workstation and rank them by real attack paths.">
+<link rel="icon" href="/favicon.svg">
+<link rel="stylesheet" href="/style.css">
+</head>
+<body>
+<p><a href="/">cirven systems</a> / modules / audit</p>
+<h1>cirven audit</h1>
+<p>Reads your system, changes nothing, and tells you how an attacker would get in. Findings are ranked by the attack paths they open, not by checklist order.</p>
+
+<h2>usage</h2>
+<pre><span class="p">$</span> cirven audit
+<span class="w">[high]</span> ~/.bash_history:412  github token in plaintext (ghp_****)
+<span class="w">[high]</span> sshd: PasswordAuthentication yes, port 22 open on 0.0.0.0
+       <span class="d">path: exposed sshd + password auth -> remote brute force</span>
+<span class="w">[med ]</span> no firewall rules loaded (nftables empty)
+<span class="ok">[ok  ]</span> root fs on LUKS2, argon2id
+<span class="ok">[ok  ]</span> secure boot enabled, own keys enrolled
+5 findings, 2 high. run <code>cirven harden --plan</code> to fix.</pre>
+
+<h2>checks</h2>
+<ul>
+<li>network: listening sockets, firewall state, exposed services</li>
+<li>ssh: sshd config, authorized_keys, unencrypted private keys, agent forwarding</li>
+<li>secrets: tokens and keys in shell history, dotfiles, .env files, git configs</li>
+<li>disk: LUKS version and KDF, swap and hibernation encryption</li>
+<li>boot: secure boot, bootloader and kernel cmdline, unsigned modules</li>
+<li>accounts: sudo rules, passwordless sudo, polkit, PAM stack</li>
+<li>updates: pending security updates, kernel age, stale packages</li>
+<li>desktop: screen lock timeout, autostart entries, world-readable home files</li>
+</ul>
+
+<h2>output</h2>
+<p>Human-readable by default. <code>--json</code> for machines, <code>--sarif</code> for CI. Exit code reflects the highest severity, so it can gate scripts.</p>
+
+<h2>threat model</h2>
+<p>Stops: misconfigurations an attacker would use, found before they are. Does not stop: an attacker already on the machine; they can lie to any tool running beside them. For that, see <a href="/modules/watch.html">watch</a>.</p>
+
+<footer><hr>status: <span class="w">planned</span> &middot; <a href="/">back</a></footer>
+</body>
+</html>
