@@ -44,7 +44,56 @@ fn running(host: &Host, comm: &str) -> bool {
         .any(|p| fs::read_to_string(p.join("comm")).is_ok_and(|c| c.trim() == comm))
 }
 
+/// Omarchy's quickshell-based shell locks on idle itself, configured in
+/// `~/.config/omarchy/shell.json` and defaulting to 300 seconds.
+const OMARCHY_DEFAULT_LOCK: u64 = 300;
+
+fn omarchy_lock(host: &Host, report: &mut Report) -> bool {
+    let conf = host.home(".config/omarchy/shell.json");
+    let Ok(text) = host.read(&conf) else {
+        return false;
+    };
+    if !running(host, "quickshell") {
+        return false;
+    }
+    let lock = serde_json::from_str::<serde_json::Value>(&text)
+        .ok()
+        .and_then(|v| v.get("idle")?.get("lock")?.as_u64())
+        .unwrap_or(OMARCHY_DEFAULT_LOCK);
+    if lock == 0 {
+        report.find(
+            Finding::new(
+                "desktop.no-idle-lock",
+                Severity::Medium,
+                "omarchy shell never locks on idle",
+            )
+            .at(host.display(&conf))
+            .path("an unlocked, unattended laptop is a logged-in shell for anyone nearby")
+            .remedy("set idle.lock to e.g. 300 seconds"),
+        );
+    } else if lock > 900 {
+        report.find(
+            Finding::new(
+                "desktop.slow-idle-lock",
+                Severity::Low,
+                format!("screen locks only after {} minutes idle", lock / 60),
+            )
+            .at(host.display(&conf))
+            .remedy("set idle.lock to 300 seconds or less"),
+        );
+    } else {
+        report.pass(format!("screen locks after {lock}s idle (omarchy shell)"));
+    }
+    true
+}
+
 fn screen_lock(host: &Host, report: &mut Report) {
+    if !omarchy_lock(host, report) {
+        hypridle_lock(host, report);
+    }
+}
+
+fn hypridle_lock(host: &Host, report: &mut Report) {
     let conf = host.home(".config/hypr/hypridle.conf");
     let Ok(text) = host.read(&conf) else {
         if host.home(".config/hypr").exists() {
@@ -120,6 +169,37 @@ mod tests {
         let mut r = Report::default();
         home_perms(&host, &mut r);
         assert!(r.findings.is_empty());
+    }
+
+    #[test]
+    fn omarchy_shell_lock_takes_precedence() {
+        let (_d, host) = fixture();
+        fs::create_dir_all(host.home(".config/omarchy")).unwrap();
+        fs::write(
+            host.home(".config/omarchy/shell.json"),
+            r#"{"idle": {"lock": 150}}"#,
+        )
+        .unwrap();
+        fs::create_dir_all(host.sys("/proc/7")).unwrap();
+        fs::write(host.sys("/proc/7/comm"), "quickshell\n").unwrap();
+        let mut r = Report::default();
+        screen_lock(&host, &mut r);
+        assert!(r.findings.is_empty(), "{:?}", r.findings);
+        assert_eq!(r.passed, ["screen locks after 150s idle (omarchy shell)"]);
+
+        fs::write(
+            host.home(".config/omarchy/shell.json"),
+            r#"{"idle": {"lock": 0}}"#,
+        )
+        .unwrap();
+        let mut r = Report::default();
+        screen_lock(&host, &mut r);
+        assert_eq!(r.findings[0].id, "desktop.no-idle-lock");
+
+        fs::write(host.home(".config/omarchy/shell.json"), "{}").unwrap();
+        let mut r = Report::default();
+        screen_lock(&host, &mut r);
+        assert_eq!(r.passed, ["screen locks after 300s idle (omarchy shell)"]);
     }
 
     #[test]
